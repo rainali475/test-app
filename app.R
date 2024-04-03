@@ -966,7 +966,7 @@ server <- function(input, output, session) {
           incProgress(1/filenum, detail=paste0(round(i/filenum*100),"%"))
           name <- txt_handle$name[i]
           user_pred <- tryCatch({read.table(txt_handle$datapath[i], header = TRUE, check.names = FALSE)}, 
-                              error = function(e) e)
+                                error = function(e) e)
           if (inherits(user_pred, "error")) {
             # Add message and move on to examine next file
             sample_add_txt_upload_msg(paste0(sample_add_txt_upload_msg(), 
@@ -1019,8 +1019,8 @@ server <- function(input, output, session) {
           }
           pred_matrix <- data.matrix(user_pred[, 4:ncol(user_pred), drop = FALSE])
           gr <- GRanges(seqnames = user_pred$Chromosome, 
-                           ranges = IRanges(start = user_pred$Start, 
-                                            end = user_pred$End))
+                        ranges = IRanges(start = user_pred$Start, 
+                                         end = user_pred$End))
           valid_bins <- gr %in% bird_ranges
           if (! all(valid_bins)) {
             sample_add_txt_upload_msg(paste0(sample_add_txt_upload_msg(), 
@@ -1333,15 +1333,15 @@ server <- function(input, output, session) {
       return(bird_ranges)
     } 
     if (input$all_sel_method == 'Manual') {
-      custom_gr <- GRanges()
+      gr <- GRanges()
       for (chr in input$all_sel_chr) {
         # Get user queried chromosome range from slider input
         range <- input[[paste0("all_genomic_range", sub("chr", "", chr))]]
         chr_gr <- GRanges(seqnames = chr, 
                           ranges = IRanges(start = range[1], end = range[2]))
-        custom_gr <- suppressWarnings(c(custom_gr, chr_gr))
+        gr <- suppressWarnings(c(gr, chr_gr))
       }
-      return(custom_gr)
+      return(gr)
     } 
     # Get custom ranges from BED input
     if (is.null(input$all_bed)) {
@@ -1489,11 +1489,10 @@ server <- function(input, output, session) {
       textOutput("download_msg_bw")
     } else {
       tagList(
-        textOutput("download_msg_bw"),
         p("To show the tracks of selected predictions on our UCSC Genome Browser Hub, 
           you need to upload a session file to UCSC genome browser. "),
         p("Go to ", tags$a(href="https://genome.ucsc.edu/", "https://genome.ucsc.edu/", target="_blank"), 
-        " -> My Data -> My Sessions -> Restore Settings -> Use settings from a local file -> submit. "),
+          " -> My Data -> My Sessions -> Restore Settings -> Use settings from a local file -> submit. "),
         p("Please note that you can view all predictions on all genomic positions 
           on UCSC Genome Browser by toggling display region and subtracks visibility."), 
         radioButtons("ucsc_session_range_type",
@@ -1711,12 +1710,6 @@ server <- function(input, output, session) {
             "PCA Results", 
             tags$div(
               style = "margin-bottom:50px; margin-top:50px",
-              selectInput(
-                "pca_show_graph", 
-                label = "Choose graph to display: ", 
-                choices = c("PCA Plot", "Explained Variance", "Cumulative Explained Variance"), 
-                selected = "PCA Plot"
-              ),
               uiOutput("pca_ui")
             )
           ), 
@@ -1926,6 +1919,19 @@ server <- function(input, output, session) {
   
   # Render PCA results UI panel
   output$pca_ui <- renderUI({
+    tagList(selectizeInput(
+      "pca_show_graph", 
+      label = "Choose graph to display: ", 
+      choices = c("PCA Plot", "Explained Variance", "Cumulative Explained Variance"), 
+      options = list(placeholder = "", 
+                     onInitialize = I('function() { this.setValue(""); }'))
+    ),
+    uiOutput("pca_graph_ui"))
+  })
+  
+  # PCA graphs
+  output$pca_graph_ui <- renderUI({
+    req(input$pca_show_graph)
     if (input$pca_show_graph == "PCA Plot") {
       # Output PCA plot
       uiOutput("pca_plot_ui")
@@ -2461,9 +2467,9 @@ server <- function(input, output, session) {
     top_pcs <- pca_res()[, 1:2]
     brushed_samples <- rownames(brushedPoints(top_pcs, input$pt_traj_brush, xvar = "PC1", yvar = "PC2"))
     output$pt_traj_brushed <- DT::renderDataTable(selected_samples()[selected_samples()$sample %in% brushed_samples, ],
-                                                   rownames = FALSE,
-                                                   filter = list(position = 'top', clear = FALSE), 
-                                                   selection = "none")
+                                                  rownames = FALSE,
+                                                  filter = list(position = 'top', clear = FALSE), 
+                                                  selection = "none")
   })
   
   # Render UI for pseudo time trajectory plot sample name size selection
@@ -2654,9 +2660,9 @@ server <- function(input, output, session) {
     top_pcs <- data.frame(gbin_pca_res()$x)[, 1:2]
     brushed_gbins <- rownames(brushedPoints(top_pcs, input$pt_gbin_clust_plot_pca_brush, xvar = "PC1", yvar = "PC2"))
     output$pt_gbin_clust_plot_pca_brushed <- DT::renderDataTable(parse_gbin(brushed_gbins),
-                                                   rownames = FALSE,
-                                                   filter = list(position = 'top', clear = FALSE), 
-                                                   selection = "none")
+                                                                 rownames = FALSE,
+                                                                 filter = list(position = 'top', clear = FALSE), 
+                                                                 selection = "none")
   })
   
   # Render UI for pseudo time genomic bin clustering results panels
@@ -4019,10 +4025,10 @@ server <- function(input, output, session) {
   
   # Render table showing significant bins and nearest genes
   output$pt_diff_go_sig_bins_table <- DT::renderDataTable(pt_diff_go_sig_bins_table() %>%
-                                                         datatable(rownames = FALSE,
-                                                                   filter = list(position = 'top', clear = FALSE), 
-                                                                   selection = "none", 
-                                                                   options = list(scrollX = TRUE)))
+                                                            datatable(rownames = FALSE,
+                                                                      filter = list(position = 'top', clear = FALSE), 
+                                                                      selection = "none", 
+                                                                      options = list(scrollX = TRUE)))
   
   # Record whether there is no feasible GO terms found for current submission
   pt_no_feasible_go_terms <- reactiveVal(FALSE)
@@ -4178,7 +4184,7 @@ server <- function(input, output, session) {
       })
     }
   })
-
+  
   # Render UI for selecting differential analysis results to display
   output$pt_diff_go_sel_res_ui <- renderUI({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -4197,7 +4203,7 @@ server <- function(input, output, session) {
       )
     }
   })
-
+  
   # Render Ui for displaying GO analysis results
   output$pt_diff_go_res_ui <- renderUI({
     if (input$pt_diff_go_sel_res == 'Top GO terms table') {
@@ -4786,7 +4792,7 @@ server <- function(input, output, session) {
       )
     }
   })
-
+  
   # Render UI for bar plot sort details
   output$pt_diff_go_barplot_sort_details_ui <- renderUI({
     if (input$pt_diff_go_barplot_sort_by == "custom") {
@@ -4807,7 +4813,7 @@ server <- function(input, output, session) {
       )
     }
   })
-
+  
   # Render UI for GO bar plot custom sorting options
   output$pt_diff_go_barplot_custom_sort_ui <- renderUI({
     if (input$pt_diff_go_barplot_custom_sort_method == "Text input") {
@@ -4828,7 +4834,7 @@ server <- function(input, output, session) {
       actionButton("pt_diff_go_barplot_custom_sort_drag_button", "Sort samples")
     }
   })
-
+  
   # Update GO bar plot custom sort text area input value based on uploaded file
   observeEvent(input$pt_diff_go_barplot_custom_sort_txt_file, {
     if (! is.null(input$pt_diff_go_barplot_custom_sort_txt_file)) {
@@ -4840,15 +4846,15 @@ server <- function(input, output, session) {
       )
     }
   })
-
+  
   # Disease bar plot custom order value
   pt_diff_go_barplot_custom_order <- reactiveVal()
-
+  
   # Update default custom order when GO results are computed
   observeEvent(pt_diff_top_go_terms(), {
     pt_diff_go_barplot_custom_order(pt_diff_top_go_terms()$GO.ID)
   })
-
+  
   # Render pop-up modal for GO bar plot custom drag sort
   observeEvent(input$pt_diff_go_barplot_custom_sort_drag_button, {
     if (is.null(pt_diff_go_barplot_custom_order())) {
@@ -4872,12 +4878,12 @@ server <- function(input, output, session) {
       )
     )
   })
-
+  
   # Render submission text for GO bar plot custom sort
   output$pt_diff_go_barplot_custom_sort_submission_text <- renderText({
     pt_diff_go_barplot_custom_sort_submission_text()
   })
-
+  
   # Process GO bar plot custom sort request
   pt_diff_go_barplot_custom_sort_submission_text <- eventReactive(input$pt_submit_diff_go_barplot_custom_sort, {
     if (input$pt_diff_go_barplot_custom_sort_method == "Text input") {
@@ -5043,7 +5049,7 @@ server <- function(input, output, session) {
     }
     return(g)
   })
-
+  
   # Data frame of top GO terms with go column containing integer GO ids
   pt_diff_top_go_terms_df <- reactive({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -5052,7 +5058,7 @@ server <- function(input, output, session) {
       go_df
     }
   })
-
+  
   # Render plot for GO terms p values
   output$pt_diff_go_pval_graph <- renderPlotly({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -5100,7 +5106,7 @@ server <- function(input, output, session) {
       fig
     }
   })
-
+  
   # Make GO terms p-value plotly graph brushed points table
   observeEvent({
     event_data(event = "plotly_selected",
@@ -5112,11 +5118,11 @@ server <- function(input, output, session) {
                               session = shiny::getDefaultReactiveDomain())
     df <- pt_diff_top_go_terms_df()[go_selected$pointNumber + 1, ]
     output$pt_diff_go_pval_graph_brushed <- DT::renderDataTable(subset(df, select = -c(go)),
-                                                             rownames = FALSE,
-                                                             filter = list(position = 'top', clear = FALSE),
-                                                             selection = "none")
+                                                                rownames = FALSE,
+                                                                filter = list(position = 'top', clear = FALSE),
+                                                                selection = "none")
   })
-
+  
   # Show detailed info modal on GO terms p-value graph click event
   observeEvent({
     event_data(event = "plotly_click",
@@ -5135,9 +5141,9 @@ server <- function(input, output, session) {
     rownames(go_info)[rownames(go_info) == 'odds_ratio_unconditional'] <- 'Odds ratio (estimated by unconditional MLE)'
     rownames(go_info)[rownames(go_info) == 'odds_ratio_pseudo'] <- 'Odds ratio (estimated by unconditional MLE with pseudocount of 0.5)'
     output$pt_diff_go_graph_pt_details_table <- DT::renderDataTable(DT::datatable(go_info,
-                                                                               colnames = "",
-                                                                               selection = "none",
-                                                                               escape = FALSE))
+                                                                                  colnames = "",
+                                                                                  selection = "none",
+                                                                                  escape = FALSE))
     showModal(modalDialog(
       tagList(
         downloadButton("pt_go_genes_download", "Download significant genes"),
@@ -5146,7 +5152,7 @@ server <- function(input, output, session) {
       easyClose = TRUE
     ))
   })
-
+  
   # Render plot for GO terms FDR
   output$pt_diff_go_fdr_graph <- renderPlotly({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -5194,7 +5200,7 @@ server <- function(input, output, session) {
       fig
     }
   })
-
+  
   # Make GO terms FDR plotly graph brushed points table
   observeEvent(
     suppressWarnings(event_data(event = "plotly_selected",
@@ -5206,11 +5212,11 @@ server <- function(input, output, session) {
                                 session = shiny::getDefaultReactiveDomain())
       df <- pt_diff_top_go_terms_df()[go_selected$pointNumber + 1, ]
       output$pt_diff_go_fdr_graph_brushed <- DT::renderDataTable(subset(df, select = -c(go)),
-                                                              rownames = FALSE,
-                                                              filter = list(position = 'top', clear = FALSE),
-                                                              selection = "none")
+                                                                 rownames = FALSE,
+                                                                 filter = list(position = 'top', clear = FALSE),
+                                                                 selection = "none")
     })
-
+  
   # Show detailed info modal on GO terms FDR graph click event
   observeEvent(
     suppressWarnings(event_data(event = "plotly_click",
@@ -5229,9 +5235,9 @@ server <- function(input, output, session) {
       rownames(go_info)[rownames(go_info) == 'odds_ratio_unconditional'] <- 'Odds ratio (estimated by unconditional MLE)'
       rownames(go_info)[rownames(go_info) == 'odds_ratio_pseudo'] <- 'Odds ratio (estimated by unconditional MLE with pseudocount of 0.5)'
       output$pt_diff_go_graph_pt_details_table <- DT::renderDataTable(DT::datatable(go_info,
-                                                                                 colnames = "",
-                                                                                 selection = "none",
-                                                                                 escape = FALSE))
+                                                                                    colnames = "",
+                                                                                    selection = "none",
+                                                                                    escape = FALSE))
       showModal(modalDialog(
         tagList(
           downloadButton("pt_go_genes_download", "Download significant genes"),
@@ -5241,7 +5247,7 @@ server <- function(input, output, session) {
       ))
     }
   )
-
+  
   # Render GO terms volcano plot
   output$pt_diff_go_volcano_plot <- renderPlotly({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -5280,7 +5286,7 @@ server <- function(input, output, session) {
       fig
     }
   })
-
+  
   # Download GO term significant genes in modal pop-up
   output$pt_go_genes_download <- downloadHandler(
     filename = {
@@ -5301,7 +5307,7 @@ server <- function(input, output, session) {
                   quote = FALSE)
     }
   )
-
+  
   # Differential test top GO terms download
   output$pt_diff_go_table_download <- downloadHandler(
     filename = "Top_GO_terms.txt",
@@ -5313,7 +5319,7 @@ server <- function(input, output, session) {
                   sep = "\t")
     }
   )
-
+  
   # Render significant differential bins nearest genes associated top GO terms table
   output$pt_diff_go_table <- DT::renderDataTable({
     if (! is.null(pt_diff_top_go_terms())) {
@@ -5327,7 +5333,7 @@ server <- function(input, output, session) {
                     digits=4)
     }
   })
-
+  
   output$heatmap_page_ui <- renderUI({
     if (nrow(selected_samples()) < 2) {
       p("You must select at least 2 samples to display a heatmap. ")
@@ -5470,7 +5476,8 @@ server <- function(input, output, session) {
                 radioButtons(
                   "samples_grouping_method", 
                   "Group samples by: ", 
-                  c("manual selection", "k-means clustering")
+                  c("manual selection", "k-means clustering"), 
+                  selected = character(0)
                 ), 
                 bsTooltip("samples_grouping_method", 
                           title = "Manual selection methods include text input, drag-and-drop, and lasso selection from samples plot. ", 
@@ -5498,6 +5505,7 @@ server <- function(input, output, session) {
   
   # UI for grouping option parameters that show up on sidebar
   output$diff_sample_grouping_options_ui <- renderUI({
+    req(input$samples_grouping_method)
     if (input$samples_grouping_method == "k-means clustering") {
       tagList(
         # PCA
@@ -5563,6 +5571,8 @@ server <- function(input, output, session) {
   
   # UI for grouping details for specific grouping option
   output$diff_sample_grouping_ui <- renderUI({
+    req(input$samples_grouping_method)
+    req
     if (input$samples_grouping_method == "k-means clustering") {
       tagList(
         div(style = "display: inline-block;vertical-align: middle;", h3("Samples k-means clustering")), 
@@ -5966,9 +5976,9 @@ server <- function(input, output, session) {
         samples <- diff_plotsel_groups()[[x]]
         df <- selected_samples()[selected_samples()$sample %in% samples, ]
         output[[paste0("diff_plotsel_group", x, "_table")]] <- DT::renderDataTable(df, 
-                                                                                    rownames = FALSE,
-                                                                                    filter = list(position = 'top', clear = FALSE), 
-                                                                                    selection = "none")
+                                                                                   rownames = FALSE,
+                                                                                   filter = list(position = 'top', clear = FALSE), 
+                                                                                   selection = "none")
       })
     }
   })
@@ -6049,7 +6059,7 @@ server <- function(input, output, session) {
     if (any(! unlist(groups_list) %in% sample_ids)) {
       bad_samples <- unlist(groups_list)[which(! unlist(groups_list) %in% sample_ids)]
       return(paste0("Grouping failed. \nThe following samples are not found in selected samples:\n", 
-                   paste(unique(bad_samples), collapse = "\n")))
+                    paste(unique(bad_samples), collapse = "\n")))
     } else if (! all(sample_ids %in% unlist(groups_list))) {
       bad_samples <- sample_ids[which(! sample_ids %in% unlist(groups_list))]
       return(paste0("Grouping failed. \nThe following samples are not assigned to any groups:\n", 
@@ -6292,9 +6302,9 @@ server <- function(input, output, session) {
     top_pcs <- diff_pca_res()[, 1:2]
     brushed_samples <- rownames(brushedPoints(top_pcs, input$diff_pca_plot_brush, xvar = "PC1", yvar = "PC2"))
     output$diff_pca_brushed <- DT::renderDataTable(selected_samples()[selected_samples()$sample %in% brushed_samples, ],
-                                              rownames = FALSE,
-                                              filter = list(position = 'top', clear = FALSE), 
-                                              selection = "none")
+                                                   rownames = FALSE,
+                                                   filter = list(position = 'top', clear = FALSE), 
+                                                   selection = "none")
   })
   
   # Render PCA variance plot
@@ -6464,17 +6474,17 @@ server <- function(input, output, session) {
     top_pcs <- data.frame(diff_pca_res_full()$x)[, 1:2]
     brushed_samples <- rownames(brushedPoints(top_pcs, input$diff_sample_clust_plot_pca_brush, xvar = "PC1", yvar = "PC2"))
     output$diff_sample_clust_plot_pca_brushed <- DT::renderDataTable(selected_samples()[selected_samples()$sample %in% brushed_samples, ],
-                                                   rownames = FALSE,
-                                                   filter = list(position = 'top', clear = FALSE), 
-                                                   selection = "none")
+                                                                     rownames = FALSE,
+                                                                     filter = list(position = 'top', clear = FALSE), 
+                                                                     selection = "none")
   })
   
   # Render table for sample cluster assignment
   output$diff_sample_clust_table <- DT::renderDataTable(data.frame(cluster = as.factor(diff_sample_clust_res()$cluster), 
-                                                            sample = names(diff_sample_clust_res()$cluster)), 
-                                                 rownames = FALSE,
-                                                 filter = list(position = 'top', clear = FALSE), 
-                                                 selection = "none")
+                                                                   sample = names(diff_sample_clust_res()$cluster)), 
+                                                        rownames = FALSE,
+                                                        filter = list(position = 'top', clear = FALSE), 
+                                                        selection = "none")
   
   # Render UI for differential analysis sample clustering results panels
   output$diff_sample_clust_res_panel <- renderUI({
@@ -7592,73 +7602,6 @@ server <- function(input, output, session) {
     x[1, 1] * x[2, 2] / (x[1, 2] * x[2, 1])
   }
   
-  # Function for finding top Go terms
-  gene_GO <- function(target_gene, control_gene, top=20, go_ontology, ...){
-    target_gene <- as.character(target_gene)
-    control_gene <- as.character(control_gene)
-    
-    unique_gene <- unique(c(target_gene, control_gene))
-    geneList <- rep(0, length(unique_gene))
-    names(geneList) <- unique_gene
-    geneList[which(target_gene %in% unique_gene)] <- 1
-    
-    print(paste0("num target genes: ", length(target_gene), "; num all genes: ", length(unique_gene)))
-    
-    GOdata <- new("topGOdata",description = "pathway", ontology = go_ontology,
-                  allGenes = geneList, geneSelectionFun = function(x) {x == 1},
-                  nodeSize = 10, annotationFun = annFUN.org, mapping = 'org.Hs.eg.db', ID = 'symbol')
-    
-    gene.universe <- genes(GOdata)
-    sig.genes <- sigGenes(GOdata)
-    if (length(usedGO(GOdata)) == 0) {
-      # No feasible GO terms
-      return(NULL)
-    }
-    res <- sapply(usedGO(GOdata), function(goID) {
-      go.genes <- genesInTerm(GOdata, goID)[[1]]
-      my.group <- new("classicCount", 
-                      testStatistic = GOFisherTest, 
-                      name = "fisher",
-                      allMembers = gene.universe, 
-                      groupMembers = go.genes,
-                      sigMembers = sig.genes)
-      fisher_res <- fisher.test(contTable(my.group), alternative = "greater")
-      c(fisher_res$p.value, fisher_res$estimate, uncond_or(contTable(my.group)), uncond_or(contTable(my.group) + 1))
-    })
-    if (length(usedGO(GOdata)) == 1) {
-      res <- data.frame(res)
-    } else {
-      res <- data.frame(t(res))
-    }
-    colnames(res) <- c('p.value', 'cond.odds.ratio', 'uncond.odds.ratio', 'pc.uncond.odds.ratio')
-    
-    pval <- res$p.value
-    names(pval) <- row.names(res)
-    GOtest <- new("topGOresult", description = 'BP', score = pval, testName = 'fisher', algorithm = 'classic')
-    resultTable <- GenTable(GOdata,
-                            pvalue = GOtest,
-                            topNodes = min(top, length(usedGO(GOdata))),
-                            ranksOf = 'pvalue',
-                            numChar = 1024)
-    
-    pval_adj <- p.adjust(pval, method="BH")
-    resultTable$FDR <- pval_adj[resultTable$GO.ID]
-    
-    resultTable$odds_ratio_conditional <- res[resultTable$GO.ID, 'cond.odds.ratio']
-    resultTable$odds_ratio_unconditional <- res[resultTable$GO.ID, 'uncond.odds.ratio']
-    resultTable$odds_ratio_pseudo <- res[resultTable$GO.ID, 'pc.uncond.odds.ratio']
-    
-    GO_gene_all <- genesInTerm(GOdata, resultTable[,1])
-    GO_gene_sign <- sapply(GO_gene_all, function(x){
-      tmp <- x[x %in% target_gene]
-      paste(tmp, collapse=",")
-    })
-    
-    resultTable$gene <- GO_gene_sign
-    resultTable$pvalue <- as.numeric(resultTable$pvalue)
-    return(resultTable)
-  }
-  
   # Find top GO terms associated with genes near significant differential bins
   diff_top_go_terms <- reactive({
     if ((! is.null(input$run_diff_go)) && (input$run_diff_go > 0)) {
@@ -8467,9 +8410,9 @@ server <- function(input, output, session) {
                                 session = shiny::getDefaultReactiveDomain())
       df <- diff_top_go_terms_df()[go_selected$pointNumber + 1, ]
       output$diff_go_fdr_graph_brushed <- DT::renderDataTable(subset(df, select = -c(go)),
-                                                               rownames = FALSE,
-                                                               filter = list(position = 'top', clear = FALSE), 
-                                                               selection = "none")
+                                                              rownames = FALSE,
+                                                              filter = list(position = 'top', clear = FALSE), 
+                                                              selection = "none")
     })
   
   # Show detailed info modal on GO terms FDR graph click event
