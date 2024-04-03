@@ -8,6 +8,8 @@ bioc_pkgs <- c("recount3", "rhdf5", "GenomicRanges", "BSgenome.Hsapiens.UCSC.hg3
                "rtracklayer", "ComplexHeatmap", "InteractiveComplexHeatmap", "TSCAN", 
                "topGO", "limma", "Rsamtools", "GenomicAlignments")
 
+### test changes
+
 req_pkgs <- sapply(pkgs, function(pkg) {! requireNamespace(pkg, quietly = TRUE)})
 if (any(req_pkgs)) 
   install.packages(pkgs[req_pkgs])
