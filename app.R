@@ -814,8 +814,38 @@ server <- function(input, output, session) {
     sample_sel_table_submission_msg()
   })
   
-  # Update selected samples when data table selection occurs and output message
-  sample_sel_table_submission_msg <- eventReactive(input$submit_sample_sel_table, {
+  # Show pop-up modal when size of studies to be read exceed threshold
+  observeEvent(input$submit_sample_sel_table, {
+    if (length(input$sample_table_rows_selected) > 0) {
+      # Evaluate whether selected studies exceed size thresholds
+      before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
+      add_proj <- samples_df()[input$sample_table_rows_selected, c('project_id')]
+      after_add <- sum(proj_df$n_samples[proj_df$project %in% setdiff(unique(add_proj), selected_samples()$project)])
+      read_time <- 0
+      read_ram <- 0
+      if ((before_add < 100) && (after_add >= 100)) {
+        read_time <- ceiling(after_add / 10)
+        msg <- paste("The samples you selected require reading prediction data from", 
+                     length(union(unique(add_proj), unique(selected_samples()$project))), 
+                     "studies, which together includes", after_add, 
+                     "samples to be read from server. Approximately ")
+      }
+    }
+  })
+  
+  # Whether to show warning for number of selected samples
+  sample_sel_limit_warn <- reactiveVal(TRUE)
+  
+  # Turn off warning when asked to
+  observeEvent(input$confirm_warning_msg, {
+    if (input$sample_sel_limit_warn_off) {
+      sample_sel_limit_warn(FALSE)
+    }
+    removeModal()
+  })
+  
+  # Update selected samples when data table selection occurs
+  observeEvent(input$submit_sample_sel_table, {
     if (length(input$sample_table_rows_selected) > 0) {
       # Make samples data.frame from selected samples
       new_samples <- samples_df()[input$sample_table_rows_selected, c('project_id', 'sample_id')]
@@ -825,23 +855,75 @@ server <- function(input, output, session) {
       new_samples <- merge(new_samples, proj_sources, all.x = TRUE)
       # Re-order columns
       new_samples <- new_samples[, c("file_source", "project", "sample")]
-      # # Check if number of samples exceed limit
-      # if (nrow(new_samples) > 1000) {
-      #   return(paste("Sample selection failed. You can select at most 1000 samples. "))
-      # }
       # Remove redundant sample ids
       redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
+      # Evaluate whether selected studies exceed size thresholds
+      if (sample_sel_limit_warn()) {
+        before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
+        after_add <- sum(proj_df$n_samples[proj_df$project %in% setdiff(unique(new_samples$project), selected_samples()$project)])
+        read_ram <- round(after_add / 100, digits = 1)
+        if (((before_add < 100) && (after_add >= 100)) ||
+            ((before_add < 500) && (after_add >= 500)) ||
+            ((before_add < 1000) && (after_add >= 1000)) ||
+            ((before_add < 5000) && (after_add >= 5000)) ||
+            ((before_add < 10000) && (after_add >= 10000))) {
+          read_min <- floor(after_add / 10 / 60)
+          read_sec <- signif(((after_add / 10 / 60) - read_min) * 60, digits = 1)
+          if (read_sec == 60) {
+            read_sec <- 0
+            read_min <- read_min + 1
+          }
+          msg <- paste0("The set of samples you selected require reading prediction data from ", 
+                        length(union(unique(new_samples$project), unique(selected_samples()$project))), 
+                        " studies, which together contain ", after_add, 
+                        " samples in total. Approximately <b>", read_ram, 
+                        "GB</b> of RAM will be needed to read these studies. Data retrieval will take approximately <b>", 
+                        read_min, "m", read_sec, "s</b>.")
+          if (after_add >= 1000) {
+            msg <- paste0(msg, "<br><br>Since you are trying to retrieve large studies, 
+                         we recommend downloading compressed files of your studies 
+                         of interest and reading them from a local path. Please go 
+                         to <b>Prediction Download</b>", icon("arrow-right"), 
+                         "<b>RDS download</b> to download the compressed prediction 
+                         files and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                         " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                         " <b>Add sample by</b> ", icon("arrow-right"), 
+                         " <b>Select from local path</b> to add local samples.")
+          }
+          showModal(
+            modalDialog(
+              div(style = "display:inline-block; vertical-align:middle;", h4("Warning")), 
+              br(), 
+              HTML(msg), 
+              checkboxInput(
+                "sample_sel_limit_warn_off", 
+                "Do not show this warning again", 
+                value = FALSE
+              ), 
+              actionButton("confirm_warning_msg", "Okay"), 
+              easyClose = FALSE, 
+              footer = NULL
+            )
+          )
+        }
+      }
       # Update selected samples table
-      selected_samples(rbind(selected_samples(), new_samples))
+      selected_samples(rbind(selected_samples(), new_samples[! new_samples$sample %in% redundant_ids, ]))
       # Clear samples table selected rows
       sample_table_proxy %>% selectRows(NULL)
       if (length(redundant_ids) > 0) {
-        return(paste("Samples added to selection. The following samples are already present in the current selection:", 
-                     paste(redundant_ids, collapse = ", ")))
+        sample_sel_table_submission_msg(
+          paste("Samples added to selection. The following samples are already present in the current selection:", 
+                paste(redundant_ids, collapse = ", "))
+        )
+      } else {
+        sample_sel_table_submission_msg(paste("Selection successful! Samples added to selection. "))
       }
-      return(paste("Selection successful! Samples added to selection. "))
     }
   })
+  
+  # Update selected samples when data table selection occurs and output message
+  sample_sel_table_submission_msg <- reactiveVal("")
   
   # Show pop-up modal for displaying selected samples on button click
   observeEvent(input$show_sel_samples_table, {
@@ -922,12 +1004,12 @@ server <- function(input, output, session) {
     new_samples <- new_samples[, c("file_source", "project", "sample")]
     # Check if there is any redundant sample ids
     redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
+    # Update selected samples table
+    selected_samples(rbind(selected_samples(), new_samples[! new_samples$sample %in% redundant_ids, ]))
     if (length(redundant_ids) > 0) {
-      return(paste("Sample selection failed. The following samples are already present in the current selection:", 
+      return(paste("Samples added to selection. The following samples are already present in the current selection:", 
                    paste(redundant_ids, collapse = ", ")))
     }
-    # Update selected samples table
-    selected_samples(rbind(selected_samples(), new_samples))
     return(paste("Selection completed!"))
   })
   
