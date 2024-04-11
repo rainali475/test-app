@@ -1530,19 +1530,6 @@ server <- function(input, output, session) {
     return(pred_vec)
   }
   
-  # # Download studies RDS to temporary directory
-  # download_pred_rds <- function(studies) {
-  #   # Download selected studies rds files if they have not already been downloaded
-  #   downloaded_studies <- gsub(".rds$", "", list.files(path = rds_path, pattern = ".rds$"))
-  #   studies <- setdiff(studies, downloaded_studies)
-  #   for (i in which(studies_batch$study %in% studies)) {
-  #     rds_url <- paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
-  #                     studies_batch$batch[i], 
-  #                     "/", studies_batch$study[i], ".rds")
-  #     download.file(rds_url, file.path(tempdir(), file.path(rds_path, paste0(studies_batch$study[i], ".rds"))))
-  #   }
-  # }
-  
   # Reactive value that stores all studies predictions read so far
   studies_mat_li <- reactiveVal(list())
   
@@ -1982,6 +1969,7 @@ server <- function(input, output, session) {
         bsTooltip("pca_plot", 
                   title = "In this PCA plot, each point is a sample you selected. You can brush on this plot to see specific samples information in a table", 
                   placement = "top"),
+        actionButton("pca_plot_download", "Download plot"), 
         hr(),
         # Display table with brushed samples
         h4("PCA plot brushed points table"),
@@ -1990,19 +1978,242 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render PCA plot
-  output$pca_plot <- renderPlot({
+  # Which plot are we downloading
+  download_plot <- reactiveVal(NULL)
+  
+  # Show modal for plot parameter selection
+  observeEvent(download_plot(), {
+    showModal(
+      modalDialog(
+        title = "Plot download options", 
+        selectInput(
+          "plot_download_format", 
+          "Format: ", 
+          c("png", "tiff", "pdf", "eps")
+        ), 
+        # Units and color model
+        uiOutput("plot_download_format_opt_ui"),
+        uiOutput("plot_download_dim_ui"), 
+        fluidRow(
+          column(
+            width = 6, 
+            selectInput(
+              "plot_download_font", 
+              "Font: ", 
+              c("Arial"="sans", 
+                "Times New Roman"="serif", 
+                "Courier"="mono", 
+                "Standard Symbols"="symbol")
+            )
+          ), 
+          column(
+            width = 6,
+            uiOutput("plot_download_ppi_ui")
+          )
+        ), 
+        downloadButton("plot_download", "Confirm and download"), 
+        easyClose = FALSE, 
+        footer = actionButton("close_plot_download_modal", "Close")
+      )
+    )
+  })
+  
+  # Render UI for plot download format-specific options
+  output$plot_download_format_opt_ui <- renderUI({
+    req(input$plot_download_format)
+    if (input$plot_download_format %in% c("pdf", "eps")) {
+      fluidRow(
+        column(
+          width = 6, 
+          selectInput(
+            "plot_download_units", 
+            "Units: ", 
+            list("inches" = "in", 
+                 "cm" = "cm", 
+                 "mm" = "mm")
+          )
+        ), 
+        column(
+          width = 6, 
+          selectInput(
+            "plot_download_color_model", 
+            "Color model: ", 
+            list("RGB" = "srgb", 
+                 "CMYK" = "cmyk", 
+                 "Grayscale" = "gray")
+          )
+        )
+      )
+    } else {
+      fluidRow(
+        column(
+          width = 6, 
+          selectInput(
+            "plot_download_units", 
+            "Units: ", 
+            list("pixels" = "px", 
+                 "inches" = "in", 
+                 "cm" = "cm", 
+                 "mm" = "mm")
+          )
+        )
+      )
+    }
+  })
+  
+  # Render UI for plot download dimensions
+  output$plot_download_dim_ui <- renderUI({
+    req(input$plot_download_format)
+    dim_min <- 4
+    dim_max <- 40
+    if (input$plot_download_format %in% c("png", "tiff")) {
+      req(input$plot_download_units)
+      if (input$plot_download_units == "px") {
+        dim_min <- 400
+        dim_max <- 4000
+      } else if (input$plot_download_units == "cm") {
+        dim_min <- 100
+        dim_max <- 1000
+      } else if (input$plot_download_units == "mm") {
+        dim_min <- 1000
+        dim_max <- 10000
+      }
+    }
+    default_height <- dim_min * 2
+    default_width <- dim_min * 2.5
+    fluidRow(
+      column(
+        width = 6,
+        sliderInput(
+          "plot_download_width", 
+          "Width: ", 
+          min = dim_min, 
+          max = dim_max, 
+          value = default_width
+        )
+      ), 
+      column(
+        width = 6,
+        sliderInput(
+          "plot_download_height", 
+          "Height: ", 
+          min = dim_min, 
+          max = dim_max, 
+          value = default_height
+        )
+      )
+    )
+  })
+  
+  # Render ppi selection for all formats except pdf
+  output$plot_download_ppi_ui <- renderUI({
+    req(input$plot_download_format)
+    if (input$plot_download_format %in% c("pdf", "eps")) {
+      return(NULL)
+    } else {
+      selectInput(
+        "plot_download_ppi", 
+        "Resolution (ppi): ", 
+        c(72, 96, 300, 600, 900, 1200)
+      )
+    }
+  })
+  
+  # Download plot
+  output$plot_download <- downloadHandler(
+    filename = function() {paste0("plot.", input$plot_download_format)},
+    content = function(file) {
+      if (input$plot_download_format == "png") {
+        png(filename = file, 
+            width = input$plot_download_width, 
+            height = input$plot_download_height, 
+            units = input$plot_download_units, 
+            res = input$plot_download_ppi, 
+            family = input$plot_download_font)
+        print(download_plot())
+        dev.off()
+      } else if (input$plot_download_format == "tiff") {
+        tiff(filename = file, 
+            width = input$plot_download_width, 
+            height = input$plot_download_height, 
+            units = input$plot_download_units, 
+            res = input$plot_download_ppi, 
+            family = input$plot_download_font)
+        print(download_plot())
+        dev.off()
+      } else if (input$plot_download_format == "pdf") {
+        inch_width <- input$plot_download_width
+        inch_height <- input$plot_download_height
+        if (input$plot_download_units == "px") {
+          inch_width <- inch_width / input$plot_download_ppi
+          inch_height <- inch_height / input$plot_download_ppi
+        } else if (input$plot_download_units == "cm") {
+          inch_width <- inch_width / 2.54
+          inch_height <- inch_height / 2.54
+        } else if (input$plot_download_units == "mm") {
+          inch_width <- inch_width / 25.4
+          inch_height <- inch_height / 25.4
+        }
+        pdf(file = file, 
+            width = inch_width, 
+            height = inch_height, 
+            family = input$plot_download_font, 
+            colormodel = input$plot_download_color_model)
+        print(download_plot())
+        dev.off()
+      } else if (input$plot_download_format == "eps") {
+        inch_width <- input$plot_download_width
+        inch_height <- input$plot_download_height
+        if (input$plot_download_units == "px") {
+          inch_width <- inch_width / input$plot_download_ppi
+          inch_height <- inch_height / input$plot_download_ppi
+        } else if (input$plot_download_units == "cm") {
+          inch_width <- inch_width / 2.54
+          inch_height <- inch_height / 2.54
+        } else if (input$plot_download_units == "mm") {
+          inch_width <- inch_width / 25.4
+          inch_height <- inch_height / 25.4
+        }
+        postscript(file = file, 
+                   width = inch_width, 
+                   height = inch_height,  
+                   family = input$plot_download_font, 
+                   colormodel = input$plot_download_color_model)
+        print(download_plot())
+        dev.off()
+      }
+    }
+  )
+  
+  # Close plot parameter selection modal when asked to
+  observeEvent(input$close_plot_download_modal, {
+    download_plot(NULL)
+    removeModal()
+  })
+  
+  # PCA plot
+  pca_plot <- reactive({
     if (!all(is.na(pca_res())) && ncol(pca_res()) >= 2) {
       top_pcs <- pca_res()[, 1:2]
       proj <- selected_samples()$project
-      pca_plot <- ggplot(data = top_pcs, 
-                         mapping = aes(PC1, PC2, colour = factor(proj))) + geom_point()
-      pca_plot$labels$colour <- "Project"
+      g <- ggplot(data = top_pcs, 
+                  mapping = aes(PC1, PC2, colour = factor(proj))) + geom_point()
+      g$labels$colour <- "Project"
       explained_var <- data.frame(t(summary(pca_res_full())$importance))
       explained_var <- explained_var[paste0('PC', 1:2), 'Proportion.of.Variance']
-      pca_plot <- pca_plot + xlab(paste0("PC1 (", explained_var[1]*100, "%)")) + ylab(paste0("PC2 (", explained_var[2]*100, "%)"))
-      pca_plot
+      g <- g + xlab(paste0("PC1 (", explained_var[1]*100, "%)")) + ylab(paste0("PC2 (", explained_var[2]*100, "%)"))
+      g
     }
+  })
+  
+  # Update download_plot value on download plot button click
+  observeEvent(input$pca_plot_download, {
+    download_plot(pca_plot())
+  })
+  
+  # Render PCA plot
+  output$pca_plot <- renderPlot({
+    pca_plot()
   })
   
   # Render PCA brushed points table
@@ -2015,8 +2226,7 @@ server <- function(input, output, session) {
                                               selection = "none")
   })
   
-  # Render PCA variance plot
-  output$pca_var_plot <- renderPlot({
+  pca_var_plot <- reactive({
     explained_var <- data.frame(t(summary(pca_res_full())$importance))
     explained_var <- explained_var[paste0('PC', 1:min(10, nrow(explained_var))), ]
     var_plot <- ggplot(data = explained_var, 
@@ -2028,8 +2238,17 @@ server <- function(input, output, session) {
     var_plot
   })
   
-  # Render PCA cumulative variance plot
-  output$pca_cumvar_plot <- renderPlot({
+  # Render PCA variance plot
+  output$pca_var_plot <- renderPlot({
+    pca_var_plot()
+  })
+  
+  # Update download_plot value on download plot button click
+  observeEvent(input$pca_var_plot_download, {
+    download_plot(pca_var_plot())
+  })
+  
+  pca_cumvar_plot <- reactive({
     cumvar <- data.frame(t(summary(pca_res_full())$importance))
     cumvar <- cumvar[paste0('PC', 1:min(10, nrow(cumvar))), ]
     cumvar_plot <- ggplot(data = cumvar, 
@@ -2040,6 +2259,16 @@ server <- function(input, output, session) {
     cumvar_plot <- cumvar_plot + xlab("Principal Components") + ylab("Cumulative Proportion of Variance Explained")
     cumvar_plot <- cumvar_plot + geom_text(aes(label=cumvar$Cumulative.Proportion), vjust=-0.25)
     cumvar_plot
+  })
+  
+  # Render PCA cumulative variance plot
+  output$pca_cumvar_plot <- renderPlot({
+    pca_cumvar_plot()
+  })
+  
+  # Update download_plot value on download plot button click
+  observeEvent(input$pca_cumvar_plot_download, {
+    download_plot(pca_cumvar_plot())
   })
   
   # Render PCA results UI panel
@@ -2064,7 +2293,8 @@ server <- function(input, output, session) {
       # Output explained variance plot
       tagList(
         h4("PCA explained variance plot"),
-        plotOutput("pca_var_plot")
+        plotOutput("pca_var_plot"), 
+        actionButton("pca_var_plot_download", "Download plot")
       )
     } else {
       # Output cumulative variance plot
@@ -2073,7 +2303,8 @@ server <- function(input, output, session) {
         plotOutput("pca_cumvar_plot"), 
         bsTooltip("pca_cumvar_plot", 
                   title = "The dashed line indicates the optimal number of PCs calculated by elbow method", 
-                  placement = "top")
+                  placement = "top"), 
+        actionButton("pca_cumvar_plot_download", "Download plot")
       )
     }
   })
@@ -2256,6 +2487,7 @@ server <- function(input, output, session) {
         uiOutput('pt_traj_show_side_branch_ui'),
         h4("Pseudotime trajectory plot"),
         plotOutput('pt_traj', brush = 'pt_traj_brush'), 
+        actionButton("plot_traj_plot_download", "Download plot"), 
         bsTooltip("pt_traj", 
                   title = "The selected trajectory is shown connecting anchoring clusters. Each data point is a sample. You can brush the points to view their specifics in a table. ", 
                   placement = "top"),
@@ -2953,8 +3185,7 @@ server <- function(input, output, session) {
     g
   }
   
-  # Render plot for pseudo-time trajectory over sample clusters
-  output$pt_traj <- renderPlot({
+  pt_traj_plot <- reactive({
     sel_traj <- as.integer(unlist(strsplit(input$pt_traj_comb, ' to ')))
     if (input$pt_traj_color == "Anchoring clusters") {
       plot_traj_clusts(samples_clust(), 
@@ -2970,6 +3201,15 @@ server <- function(input, output, session) {
                 show_cell_names = input$pt_traj_show_sample_names, 
                 cell_name_size = input$pt_traj_sample_name_size)
     }
+  })
+  
+  # Render plot for pseudo-time trajectory over sample clusters
+  output$pt_traj <- renderPlot({
+    pt_traj_plot()
+  })
+  
+  observeEvent(input$plot_traj_plot_download, {
+    download_plot(pt_traj_plot())
   })
   
   # Render pseudo-time trajectory brushed points table
@@ -3069,8 +3309,7 @@ server <- function(input, output, session) {
     HTML(paste("Optimal number of clusters:", strong(opt_n_gbin_clust())))
   })
   
-  # Genomic bin clusters WSS plot
-  output$pt_gbin_clust_wss_plot <- renderPlot({
+  pt_gbin_clust_wss_plot <- reactive({
     tot_wss <- unlist(lapply(all_gbin_clust_res(), function(x) {x$tot.withinss}))
     wss_df <- data.frame(n_clust = c(1:min(max_n_gbin, nrow(pca_top_var_pred_mat()))), 
                          wss = tot_wss)
@@ -3082,6 +3321,15 @@ server <- function(input, output, session) {
     wcss_plot
   })
   
+  # Genomic bin clusters WSS plot
+  output$pt_gbin_clust_wss_plot <- renderPlot({
+    pt_gbin_clust_wss_plot()
+  })
+  
+  observeEvent(input$pt_gbin_clust_wss_plot_download, {
+    download_plot(pt_gbin_clust_wss_plot())
+  })
+  
   # UI for genomic bin clusters WSS plot
   output$pt_gbin_clust_wss_plot_ui <- renderUI({
     if (input$pt_show_gbin_clust_wss_plot) {
@@ -3090,7 +3338,8 @@ server <- function(input, output, session) {
         plotOutput('pt_gbin_clust_wss_plot'), 
         bsTooltip("pt_gbin_clust_wss_plot", 
                   title = "The dashed line indicates the optimal number of clusters determined by elbow method. ", 
-                  placement = "top")
+                  placement = "top"), 
+        actionButton("pt_gbin_clust_wss_plot_download", "Download plot")
       )
     }
   })
@@ -3100,8 +3349,7 @@ server <- function(input, output, session) {
     prcomp(scaled_pt_mat(), scale = FALSE, center = TRUE)
   })
   
-  # Render genomic bins clusters PCA plot
-  output$pt_gbin_clust_plot_pca <- renderPlot({
+  pt_gbin_clust_plot_pca <- reactive({
     showModal(modalDialog("Making cluster plot...", footer = NULL, easyClose = TRUE, size = "s"))
     # Plot the top 2 PCs
     clust_plot <- ggplot(data = data.frame(gbin_pca_res()$x)[, 1:2], 
@@ -3115,8 +3363,16 @@ server <- function(input, output, session) {
     clust_plot
   })
   
-  # Render genomic bins clusters UMAP plot
-  output$pt_gbin_clust_plot_umap <- renderPlot({
+  # Render genomic bins clusters PCA plot
+  output$pt_gbin_clust_plot_pca <- renderPlot({
+    pt_gbin_clust_plot_pca()
+  })
+  
+  observeEvent(input$pt_gbin_clust_plot_pca_download, {
+    download_plot(pt_gbin_clust_plot_pca())
+  })
+  
+  pt_gbin_clust_plot_umap <- reactive({
     # Run UMAP
     showModal(modalDialog("Running UMAP...", footer = NULL, easyClose = TRUE, size = "s"))
     set.seed(12345)
@@ -3134,6 +3390,15 @@ server <- function(input, output, session) {
     clust_plot$labels$colour <- "Cluster"
     removeModal()
     clust_plot
+  })
+  
+  # Render genomic bins clusters UMAP plot
+  output$pt_gbin_clust_plot_umap <- renderPlot({
+    pt_gbin_clust_plot_umap()
+  })
+  
+  observeEvent(input$pt_gbin_clust_plot_umap_download, {
+    download_plot(pt_gbin_clust_plot_umap())
   })
   
   # Render table for genomic bin clusters means
@@ -3184,6 +3449,7 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_clust_plot_pca", 
                   title = "Each data point represents a genomic bin. Brush on points to see details in table. ", 
                   placement = "top"),
+        actionButton("pt_gbin_clust_plot_pca_download", "Download plot"), 
         hr(),
         h4("PCA plot brushed points table"),
         DT::dataTableOutput('pt_gbin_clust_plot_pca_brushed')
@@ -3202,7 +3468,8 @@ server <- function(input, output, session) {
     } else if (input$pt_gbin_clust_res_show_panel == "Cluster Plot (UMAP)") {
       tagList(
         h4("UMAP plot of genomic bin clusters"), 
-        plotOutput('pt_gbin_clust_plot_umap')
+        plotOutput('pt_gbin_clust_plot_umap'), 
+        actionButton("pt_gbin_clust_plot_umap_download", "Download plot")
       )
     }
   })
@@ -3327,14 +3594,22 @@ server <- function(input, output, session) {
     na.omit(scaled_mat)
   })
   
-  # Render chromatin accessibility along pseudo time plot for chosen genomic bin cluster
-  output$pt_gbin_clust_chracc_plot <- renderPlot({
+  pt_gbin_clust_chracc_plot <- reactive({
     mean_pt_df <- aggregate(scaled_pt_mat(), 
                             by=list(cluster=gbin_clust_res()$cluster), 
                             mean)
     chosen_clust_scaled <- as.numeric(mean_pt_df[mean_pt_df$cluster == input$pt_choose_gbin_clust, 2:ncol(mean_pt_df)])
     names(chosen_clust_scaled) <- pred_order()$sample_name
     chracc_along_pt_plot(chosen_clust_scaled, pred_order())
+  })
+  
+  # Render chromatin accessibility along pseudo time plot for chosen genomic bin cluster
+  output$pt_gbin_clust_chracc_plot <- renderPlot({
+    pt_gbin_clust_chracc_plot()
+  })
+  
+  observeEvent(input$pt_gbin_clust_chracc_plot_download, {
+    download_plot(pt_gbin_clust_chracc_plot())
   })
   
   # Reactive value indicating whether chosen cluster bins map to at least 1 ensembl gene
@@ -3395,11 +3670,19 @@ server <- function(input, output, session) {
     chosen_clust_scaled
   })
   
-  # Render expression along pseudo time plot for chosen genomic bin cluster
-  output$pt_gbin_clust_expr_plot <- renderPlot({
+  pt_gbin_clust_expr_plot <- reactive({
     if (! is.null(pt_chosen_clust_expr())) {
       expr_along_pt_plot(pt_chosen_clust_expr(), pred_order())
     }
+  })
+  
+  # Render expression along pseudo time plot for chosen genomic bin cluster
+  output$pt_gbin_clust_expr_plot <- renderPlot({
+    pt_gbin_clust_expr_plot()
+  })
+  
+  observeEvent(input$pt_gbin_clust_expr_plot_download, {
+    download_plot(pt_gbin_clust_expr_plot())
   })
   
   # Make genomic bin clusters chromatin accessibility along pseudo time heat map
@@ -3439,6 +3722,10 @@ server <- function(input, output, session) {
     pt_gbin_clust_chracc_heatmap()
   })
   
+  observeEvent(input$pt_gbin_clust_chracc_heatmap_download, {
+    download_plot(pt_gbin_clust_chracc_heatmap())
+  })
+  
   # Interactive heat map
   observeEvent(input$show_interactive_pt_gbin_clust_expr_heatmap, {
     InteractiveComplexHeatmapModal(input, output, session, pt_gbin_clust_expr_heatmap())
@@ -3447,6 +3734,10 @@ server <- function(input, output, session) {
   # Render expression along pseudo time heat map for chosen genomic bin cluster
   output$pt_gbin_clust_expr_heatmap <- renderPlot({
     pt_gbin_clust_expr_heatmap()
+  })
+  
+  observeEvent(input$pt_gbin_clust_expr_heatmap_download, {
+    download_plot(pt_gbin_clust_expr_heatmap())
   })
   
   # Render genomic bin cluster chromatin accessibility visualization UI
@@ -3462,7 +3753,8 @@ server <- function(input, output, session) {
         plotOutput('pt_gbin_clust_chracc_plot'), 
         bsTooltip("pt_gbin_clust_chracc_plot", 
                   title = "Data points are arranged in order of pseudo time along the x-axis. Each data point represents the average predicted log accessibility of the selected genomic bin cluster. ", 
-                  placement = "top")
+                  placement = "top"), 
+        actionButton("pt_gbin_clust_chracc_plot_download", "Download plot")
       )
     } else if (input$pt_gbin_clust_chracc_choose_plot == "Heatmap") {
       if (input$pt_n_gbin_clust > 1) {
@@ -3473,7 +3765,8 @@ server <- function(input, output, session) {
           plotOutput('pt_gbin_clust_chracc_heatmap'), 
           bsTooltip("pt_gbin_clust_chracc_heatmap", 
                     title = "Heat map columns are arranged in order of pseudo time. Each heat map cell represents the average predicted log accessibility of the selected genomic bin cluster. ", 
-                    placement = "top")
+                    placement = "top"), 
+          actionButton("pt_gbin_clust_chracc_heatmap_download", "Download plot")
         )
       } else {
         # No need to use heat map visualization
@@ -3523,7 +3816,8 @@ server <- function(input, output, session) {
         plotOutput('pt_gbin_clust_expr_plot'), 
         bsTooltip("pt_gbin_clust_expr_plot", 
                   title = "Data points are arranged in order of pseudo time along the x-axis. Each data point represents the scaled average log expression of the selected genomic bin cluster. ", 
-                  placement = "top")
+                  placement = "top"), 
+        actionButton("pt_gbin_clust_expr_plot_download", "Download plot")
       )
     } else if (input$pt_gbin_clust_expr_choose_plot == "Heatmap") {
       if (input$pt_n_gbin_clust > 1) {
@@ -3561,7 +3855,8 @@ server <- function(input, output, session) {
           plotOutput('pt_gbin_clust_expr_heatmap'), 
           bsTooltip("pt_gbin_clust_expr_heatmap", 
                     title = "Heat map columns are arranged in order of pseudo time. Each heat map cell represents the average expression of the selected genomic bin cluster scaled across samples. ", 
-                    placement = "top")
+                    placement = "top"), 
+          actionButton("pt_gbin_clust_expr_heatmap_download", "Download plot")
         )
       } else {
         # No need to use heat map visualization
@@ -3687,11 +3982,19 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render chromatin accessibility along pseudo time plot for chosen genomic bin
-  output$pt_gbin_chracc_plot <- renderPlot({
+  pt_gbin_chracc_plot <- reactive({
     if (length(input$top_var_gbin_table_rows_selected == 1)) {
       chracc_along_pt_plot(pca_top_var_pred_mat()[input$top_var_gbin_table_rows_selected, ], pred_order())
     }
+  })
+  
+  # Render chromatin accessibility along pseudo time plot for chosen genomic bin
+  output$pt_gbin_chracc_plot <- renderPlot({
+    pt_gbin_chracc_plot()
+  })
+  
+  observeEvent(input$pt_gbin_chracc_plot, {
+    download_plot(pt_gbin_chracc_plot())
   })
   
   # Reactive value indicating whether chosen bin maps to at least 1 ensembl gene
@@ -3704,8 +4007,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render expression along pseudo time plot for chosen genomic bin
-  output$pt_gbin_expr_plot <- renderPlot({
+  pt_gbin_expr_plot <- reactive({
     pt_gbin_exist_ensembl(TRUE)
     if (length(input$top_var_gbin_table_rows_selected == 1)) {
       gbin <- rownames(pca_top_var_pred_mat())[input$top_var_gbin_table_rows_selected]
@@ -3720,6 +4022,15 @@ server <- function(input, output, session) {
       names(gbin_expr) <- colnames(scaled_expr_pt_mat())
       expr_along_pt_plot(gbin_expr, pred_order())
     }
+  })
+  
+  # Render expression along pseudo time plot for chosen genomic bin
+  output$pt_gbin_expr_plot <- renderPlot({
+    pt_gbin_expr_plot()
+  })
+  
+  observeEvent(input$pt_gbin_expr_plot_download, {
+    download_plot(pt_gbin_expr_plot())
   })
   
   # Make genomic bin chromatin accessibility along pseudo time heat map
@@ -3772,6 +4083,10 @@ server <- function(input, output, session) {
   # Render chromatin accessibility along pseudo time heat map for chosen genomic bin 
   output$pt_gbin_chracc_heatmap <- renderPlot({
     pt_gbin_chracc_heatmap()
+  })
+  
+  observeEvent(input$pt_gbin_chracc_heatmap_download, {
+    download_plot(pt_gbin_chracc_heatmap())
   })
   
   # Make genomic bin expression along pseudo time heat map
@@ -3846,6 +4161,10 @@ server <- function(input, output, session) {
     pt_gbin_expr_heatmap()
   })
   
+  observeEvent(input$pt_gbin_expr_heatmap_download, {
+    download_plot(pt_gbin_expr_heatmap())
+  })
+  
   # Render genomic bin chromatin accessibility visualization UI
   output$pt_gbin_chracc_ui <- renderUI({
     if (input$pt_gbin_chracc_choose_plot == "Scatterplot") {
@@ -3871,7 +4190,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_chracc_plot", 
                   title = "Each point in this plot represents a sample. The samples are sorted by assigned pseudo-time point along x-axis. The y-axis values are predicted log<sub>2</sub> accessibility for each sample. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gbin_chracc_plot_download", "Download plot")
       )
     } else if (input$pt_gbin_chracc_choose_plot == "Heatmap") {
       tagList(
@@ -3907,7 +4227,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_chracc_heatmap", 
                   title = "Columns in this heat map are samples, and they are sorted by the assigned pseudo-time point. Rows in this heat map are genomic bins. Each cell in this heat map is the predicted log<sub>2</sub> accessibility of a genomic position in a sample. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gbin_chracc_heatmap_download", "Download plot")
       )
     }
   })
@@ -3938,7 +4259,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_expr_plot", 
                   title = "Each point in this plot represents a sample. The samples are sorted by assigned pseudo-time point along x-axis. The y-axis values are average scaled log<sub>2</sub> expression for each sample. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gbin_expr_plot_download", "Download plot")
       )
     } else if (input$pt_gbin_expr_choose_plot == "Heatmap") {
       tagList(
@@ -3974,7 +4296,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_expr_heatmap", 
                   title = "Columns in this heat map are samples, and they are sorted by the assigned pseudo-time point. Rows in this heat map are genomic bins. Each cell in this heat map is the average scaled log<sub>2</sub> expression of a genomic position in a sample. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gbin_expr_heatmap_download", "Download plot")
       )
     }
   })
@@ -4120,8 +4443,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render chromatin accessibility along pseudo time plot for chosen gene
-  output$pt_gene_chracc_plot <- renderPlot({
+  pt_gene_chracc_plot <- reactive({
     if (length(input$top_var_gene_table_rows_selected == 1)) {
       # Get predicted chromatin accessibility for associated bins
       near_gbins_chracc <- pca_top_var_pred_mat()[pt_selected_gene_gbins(), ]
@@ -4133,8 +4455,16 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render expression along pseudo time plot for chosen gene
-  output$pt_gene_expr_plot <- renderPlot({
+  # Render chromatin accessibility along pseudo time plot for chosen gene
+  output$pt_gene_chracc_plot <- renderPlot({
+    pt_gene_chracc_plot()
+  })
+  
+  observeEvent(input$pt_gene_chracc_plot_download, {
+    download_plot(pt_gene_chracc_plot())
+  })
+  
+  pt_gene_expr_plot <- reactive({
     if (length(input$top_var_gene_table_rows_selected == 1)) {
       # Get expression for gene
       selected_gene <- pca_top_var_nearest_genes()$genes[input$top_var_gene_table_rows_selected]
@@ -4147,6 +4477,15 @@ server <- function(input, output, session) {
       names(gene_expr) <- colnames(scaled_expr_pt_mat())
       expr_along_pt_plot(gene_expr, pred_order())
     }
+  })
+  
+  # Render expression along pseudo time plot for chosen gene
+  output$pt_gene_expr_plot <- renderPlot({
+    pt_gene_expr_plot()
+  })
+  
+  observeEvent(input$pt_gene_expr_plot, {
+    download_plot(pt_gene_expr_plot())
   })
   
   # Render text message indicating ENSEMBL genes that selected gene maps to
@@ -4221,9 +4560,17 @@ server <- function(input, output, session) {
     pt_gene_chracc_heatmap()
   })
   
+  observeEvent(input$pt_gene_chracc_heatmap_download, {
+    download_plot(pt_gene_chracc_heatmap())
+  })
+  
   # Render expression along pseudo time heat map
   output$pt_gene_expr_heatmap <- renderPlot({
     pt_gene_expr_heatmap()
+  })
+  
+  observeEvent(input$pt_gene_expr_heatmap_download, {
+    download_plot(pt_gene_expr_heatmap())
   })
   
   # Render gene chromatin accessibility visualization UI
@@ -4262,7 +4609,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gene_chracc_plot", 
                   title = "Along the x-axis of this plot are the samples sorted in assigned pseudo-time. The data point y-values are the average predicted log<sub>2</sub> chromatin accessibility for genomic bins nearest the selected gene. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gene_chracc_plot_download", "Download plot")
       )
     } else if (input$pt_gene_chracc_choose_plot == "Heatmap") {
       if (nrow(pca_top_var_nearest_genes()) >= 2) {
@@ -4275,7 +4623,8 @@ server <- function(input, output, session) {
           bsTooltip("pt_gene_chracc_heatmap", 
                     title = "The heat map columns are samples sorted in assigned pseudo-time. The rows are the genes near top variance genomic bins. Each heat map cell shows the average predicted log<sub>2</sub> chromatin accessibility for genomic bins nearest the gene. ", 
                     placement = "top", 
-                    options = list(html = TRUE))
+                    options = list(html = TRUE)), 
+          actionButton("pt_gene_chracc_heatmap_download", "Download plot")
         )
       } else {
         # No need to use heat map visualization
@@ -4321,7 +4670,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gene_expr_plot", 
                   title = "Along the x-axis of this plot are the samples sorted in assigned pseudo-time. The data point y-values are the scaled log<sub>2</sub> expression for the selected gene. ", 
                   placement = "top", 
-                  options = list(html = TRUE))
+                  options = list(html = TRUE)), 
+        actionButton("pt_gene_expr_plot_download", "Download plot")
       )
     } else if (input$pt_gene_expr_choose_plot == "Heatmap") {
       if ((! is.null(pca_top_var_nearest_genes())) && (nrow(pca_top_var_nearest_genes()) >= 2)) {
@@ -4334,7 +4684,8 @@ server <- function(input, output, session) {
           bsTooltip("pt_gene_expr_heatmap", 
                     title = "The heat map columns are samples sorted in assigned pseudo-time. The rows are the genes near top variance genomic bins. Each heat map cell shows the log<sub>2</sub> expression of a gene. ", 
                     placement = "top", 
-                    options = list(html = TRUE))
+                    options = list(html = TRUE)), 
+          actionButton("pt_gene_expr_heatmap_download", "Download plot")
         )
       } else {
         # No need to use heat map visualization
@@ -4546,7 +4897,8 @@ server <- function(input, output, session) {
                        bsTooltip("pt_diff_sum_hist", 
                                  title = "Histogram of selected value", 
                                  placement = "top", 
-                                 options = list(container = "body"))
+                                 options = list(container = "body")),
+                       actionButton("pt_diff_sum_hist_download", "Download plot")
                      ), 
                      wellPanel(
                        h4("p-value adjustment line plot"),
@@ -4554,7 +4906,8 @@ server <- function(input, output, session) {
                        bsTooltip("pt_diff_sum_lineplot", 
                                  title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
                                  placement = "top", 
-                                 options = list(container = "body"))
+                                 options = list(container = "body")), 
+                       actionButton("pt_diff_sum_lineplot_download", "Download plot")
                      )
                    )), 
           tabPanel("Gene ontology", 
@@ -4753,8 +5106,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render summary histogram for differential test result
-  output$pt_diff_sum_hist <- renderPlot({
+  pt_diff_sum_hist <- reactive({
     if (!is.null(pt_diff_test_res())) {
       if (input$pt_diff_res_hist_val == "statistics") {
         g <- ggplot(pt_diff_test_res(), aes(statistics)) + geom_histogram(bins = 30) 
@@ -4776,8 +5128,16 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render summary line plot for differential test result
-  output$pt_diff_sum_lineplot <- renderPlot({
+  # Render summary histogram for differential test result
+  output$pt_diff_sum_hist <- renderPlot({
+    pt_diff_sum_hist()
+  })
+  
+  observeEvent(input$pt_diff_sum_hist_download, {
+    download_plot(pt_diff_sum_hist())
+  })
+  
+  pt_diff_sum_lineplot <- reactive({
     g <- ggplot(pt_diff_test_res()[order(pt_diff_test_res()$pvalue), ], aes(1:nrow(pt_diff_test_res())))
     g <- g + geom_line(aes(y=pvalue, color = "red")) + geom_line(aes(y=FDR, color = "blue"))
     g <- g + geom_hline(yintercept = input$pt_diff_alpha, linetype = "dotted", colour = "blue")
@@ -4787,6 +5147,15 @@ server <- function(input, output, session) {
                                  values = c('blue'='blue','red'='red'), 
                                  labels = c('FDR','p-value'))
     g
+  })
+  
+  # Render summary line plot for differential test result
+  output$pt_diff_sum_lineplot <- renderPlot({
+    pt_diff_sum_lineplot()
+  })
+  
+  observeEvent(input$pt_diff_sum_lineplot_download, {
+    download_plot(pt_diff_sum_lineplot())
   })
   
   output$pt_diff_go_sel_gbin_clusts_ui <- renderUI({
@@ -5458,7 +5827,8 @@ server <- function(input, output, session) {
           options = list(container = "body",
                          html = TRUE)
         ),
-        plotOutput("pt_diff_go_barplot")
+        plotOutput("pt_diff_go_barplot"), 
+        actionButton("pt_diff_go_barplot_download", "Download plot")
       )
     } else if (input$pt_diff_go_sel_res == "GO terms accessibility along pseudo-time") {
       go_list <- pt_diff_top_go_terms()$GO.ID
@@ -5934,8 +6304,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render GO bar plot
-  output$pt_diff_go_barplot <- renderPlot({
+  pt_diff_go_barplot <- reactive({
     req(input$pt_diff_go_barplot_xlim)
     # Set bar values
     if (input$pt_diff_go_barplot_var == "p-value") {
@@ -6062,6 +6431,15 @@ server <- function(input, output, session) {
                          size = input$pt_diff_go_barplot_show_des_size)
     }
     return(g)
+  })
+  
+  # Render GO bar plot
+  output$pt_diff_go_barplot <- renderPlot({
+    pt_diff_go_barplot()
+  })
+  
+  observeEvent(input$pt_diff_go_barplot, {
+    download_plot(pt_diff_go_barplot())
   })
   
   # Data frame of top GO terms with go column containing integer GO ids
@@ -6409,6 +6787,7 @@ server <- function(input, output, session) {
         bsTooltip("heat_map", 
                   title = "The heat map columns are selected samples ordered by column clusters. Each heat map row is a genomic bin. Each heat map cell value is the predicted log<sub>2</sub> chromatin accessibility value at a genomic bin in a selected sample", 
                   placement = "top"),
+        actionButton("heat_map_download", "Download plot")
       )
     }
   })
@@ -6464,6 +6843,10 @@ server <- function(input, output, session) {
   # Render heat map
   output$heat_map <- renderPlot({
     heat_map()
+  })
+  
+  observeEvent(input$heat_map_download, {
+    download_plot(heat_map())
   })
   
   # Interactive heat map
@@ -7291,6 +7674,7 @@ server <- function(input, output, session) {
                   title = "Each data point in this plot is a sample. Brush on this plot to view sample details. ", 
                   placement = "top", 
                   options = list(container = "body")),
+        actionButton("diff_pca_plot_download", "Download plot"), 
         hr(),
         h4("PCA brushed points table"),
         # Display table with brushed samples
@@ -7299,8 +7683,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render PCA plot
-  output$diff_pca_plot <- renderPlot({
+  diff_pca_plot <- reactive({
     if (!all(is.na(diff_pca_res())) && ncol(diff_pca_res()) >= 2) {
       top_pcs <- diff_pca_res()[, 1:2]
       proj <- selected_samples()$project
@@ -7309,6 +7692,15 @@ server <- function(input, output, session) {
       pca_plot$labels$colour <- "Project"
       pca_plot
     }
+  })
+  
+  # Render PCA plot
+  output$diff_pca_plot <- renderPlot({
+    diff_pca_plot()
+  })
+  
+  observeEvent(input$diff_pca_plot_download, {
+    download_plot(diff_pca_plot())
   })
   
   # Render PCA brushed points table
@@ -7321,8 +7713,7 @@ server <- function(input, output, session) {
                                                    selection = "none")
   })
   
-  # Render PCA variance plot
-  output$diff_pca_var_plot <- renderPlot({
+  diff_pca_var_plot <- reactive({
     explained_var <- data.frame(t(summary(diff_pca_res_full())$importance))
     explained_var <- explained_var[paste0('PC', 1:min(30, nrow(explained_var))), ]
     var_plot <- ggplot(data = explained_var, 
@@ -7334,8 +7725,16 @@ server <- function(input, output, session) {
     var_plot
   })
   
-  # Render PCA cumulative variance plot
-  output$diff_pca_cumvar_plot <- renderPlot({
+  # Render PCA variance plot
+  output$diff_pca_var_plot <- renderPlot({
+    diff_pca_var_plot()
+  })
+  
+  observeEvent(input$diff_pca_var_plot_download, {
+    download_plot(diff_pca_var_plot())
+  })
+  
+  diff_pca_cumvar_plot <- reactive({
     cumvar <- data.frame(t(summary(diff_pca_res_full())$importance))
     cumvar <- cumvar[paste0('PC', 1:nrow(cumvar)), ]
     cumvar_plot <- ggplot(data = cumvar, 
@@ -7346,6 +7745,15 @@ server <- function(input, output, session) {
     cumvar_plot <- cumvar_plot + xlab("Principal Components") + ylab("Proportion of Variance Explained")
     cumvar_plot <- cumvar_plot + geom_text(aes(label=cumvar$Cumulative.Proportion), vjust=-0.25)
     cumvar_plot
+  })
+  
+  # Render PCA cumulative variance plot
+  output$diff_pca_cumvar_plot <- renderPlot({
+    diff_pca_cumvar_plot()
+  })
+  
+  observeEvent(input$diff_pca_cumvar_plot_download, {
+    download_plot(diff_pca_cumvar_plot())
   })
   
   # Render PCA results UI panel
@@ -7361,7 +7769,8 @@ server <- function(input, output, session) {
         bsTooltip("diff_pca_var_plot", 
                   title = "Explained variance for each PC.", 
                   placement = "top", 
-                  options = list(container = "body"))
+                  options = list(container = "body")), 
+        actionButton("diff_pca_var_plot_download", "Download plot")
       )
     } else if (input$diff_pca_show_graph == "Cumulative Explained Variance"){
       # Output cumulative variance plot
@@ -7371,7 +7780,8 @@ server <- function(input, output, session) {
         bsTooltip("diff_pca_cumvar_plot", 
                   title = "Cumulative explained variance along number of top PCs.", 
                   placement = "top", 
-                  options = list(container = "body"))
+                  options = list(container = "body")), 
+        actionButton("diff_pca_cumvar_plot_download", "Download plot")
       )
     }
   })
@@ -7441,8 +7851,7 @@ server <- function(input, output, session) {
     HTML(paste("Optimal number of clusters:", strong(diff_opt_n_sample_clust())))
   })
   
-  # Sample clusters WSS plot
-  output$diff_sample_clust_wss_plot <- renderPlot({
+  diff_sample_clust_wss_plot <- reactive({
     tot_wss <- unlist(lapply(all_sample_clust_res(), function(x) {x$tot.withinss}))
     wss_df <- data.frame(n_clust = c(2:min(diff_max_n_sample_clust, ncol(pred_mat()) - 1)), 
                          wss = tot_wss)
@@ -7454,6 +7863,15 @@ server <- function(input, output, session) {
     wcss_plot
   })
   
+  # Sample clusters WSS plot
+  output$diff_sample_clust_wss_plot <- renderPlot({
+    diff_sample_clust_wss_plot()
+  })
+  
+  observeEvent(input$diff_sample_clust_wss_plot_download, {
+    download_plot(diff_sample_clust_wss_plot())
+  })
+  
   # UI for sample clusters WSS plot
   output$diff_sample_clust_wss_plot_ui <- renderUI({
     if (input$diff_show_sample_clust_wss_plot) {
@@ -7463,13 +7881,13 @@ server <- function(input, output, session) {
         bsTooltip("diff_sample_clust_wss_plot", 
                   title = "This plot shows the total within-cluster sum of squares for grouping samples into different number of clusters. The dashed line indicates the optimal number of clusters suggested by elbow method. ", 
                   placement = "top", 
-                  options = list(container = "body"))
+                  options = list(container = "body")), 
+        actionButton("diff_sample_clust_wss_plot_download", "Download plot")
       )
     }
   })
   
-  # Render sample clusters PCA plot
-  output$diff_sample_clust_plot_pca <- renderPlot({
+  diff_sample_clust_plot_pca <- reactive({
     showModal(modalDialog("Making cluster plot...", footer = NULL, easyClose = TRUE, size = "s"))
     # Plot the top 2 PCs
     clust_plot <- ggplot(data = data.frame(diff_pca_res_full()$x)[, 1:2], 
@@ -7481,6 +7899,15 @@ server <- function(input, output, session) {
     clust_plot <- clust_plot + ylab(paste0("PC2 (", explained_var[2] * 100, "% variance)"))
     removeModal()
     clust_plot
+  })
+  
+  # Render sample clusters PCA plot
+  output$diff_sample_clust_plot_pca <- renderPlot({
+    diff_sample_clust_plot_pca()
+  })
+  
+  observeEvent(input$diff_sample_clust_plot_pca_download, {
+    download_plot(diff_sample_clust_plot_pca())
   })
   
   # Render PCA brushed points table
@@ -7510,6 +7937,7 @@ server <- function(input, output, session) {
                   title = "This plot shows the top 2 PCs of PCA. Each point is a sample colored by cluster. ", 
                   placement = "top", 
                   options = list(container = "body")),
+        actionButton("diff_sample_clust_plot_pca_download", "Download plot"), 
         hr(),
         # Display table with brushed samples
         h4("PCA plot brushed points"),
@@ -7939,7 +8367,8 @@ server <- function(input, output, session) {
                      bsTooltip("diff_sum_hist", 
                                title = "Histogram of selected value", 
                                placement = "top", 
-                               options = list(container = "body"))
+                               options = list(container = "body")), 
+                     actionButton("diff_sum_hist_download", "Download plot")
                    ), 
                    wellPanel(
                      h4("p-value adjustment line plot"),
@@ -7947,7 +8376,8 @@ server <- function(input, output, session) {
                      bsTooltip("diff_sum_lineplot", 
                                title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
                                placement = "top", 
-                               options = list(container = "body"))
+                               options = list(container = "body")), 
+                     actionButton("diff_sum_lineplot_download", "Download plot")
                    )
                  )), 
         tabPanel("Volcano plot", 
@@ -8094,8 +8524,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render summary histogram for differential test result
-  output$diff_sum_hist <- renderPlot({
+  diff_sum_hist <- reactive({
     if (!is.null(diff_test_res())) {
       if (input$diff_res_hist_val == "statistics") {
         g <- ggplot(diff_test_res(), aes(statistics)) + geom_histogram() 
@@ -8117,8 +8546,16 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render summary line plot for differential test result
-  output$diff_sum_lineplot <- renderPlot({
+  # Render summary histogram for differential test result
+  output$diff_sum_hist <- renderPlot({
+    diff_sum_hist()
+  })
+  
+  observeEvent(input$diff_sum_hist_download, {
+    download_plot(diff_sum_hist())
+  })
+  
+  diff_sum_lineplot <- reactive({
     g <- ggplot(diff_test_res()[order(diff_test_res()$pvalue), ], aes(1:nrow(diff_test_res())))
     g <- g + geom_line(aes(y=pvalue, color = "red")) + geom_line(aes(y=FDR, color = "blue"))
     g <- g + geom_hline(yintercept = input$diff_alpha, linetype = "dotted", colour = "blue")
@@ -8128,6 +8565,15 @@ server <- function(input, output, session) {
                                  values = c('blue'='blue','red'='red'), 
                                  labels = c('FDR','p-value'))
     g
+  })
+  
+  # Render summary line plot for differential test result
+  output$diff_sum_lineplot <- renderPlot({
+    diff_sum_lineplot()
+  })
+  
+  observeEvent(input$diff_sum_lineplot_download, {
+    download_plot(diff_sum_lineplot())
   })
   
   # Render UI for differential test volcano plot run button
@@ -8190,6 +8636,7 @@ server <- function(input, output, session) {
                   title = paste0("Each data point in the plot refers to a genomic bin. The plot shows the -log<sub>10</sub>", input$diff_volcano_y, " plotted against log<sub>2</sub> fold change"), 
                   placement = "top", 
                   options = list(container = "body")),
+        actionButton("diff_volcano_plot_download", "Download plot"),
         hr(), 
         h4("Volcano plot brushed genomic bins"),
         downloadButton("diff_volcano_plot_brushed_download", "Download brushed points table"), 
@@ -8198,8 +8645,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render differential test volcano plot
-  output$diff_volcano_plot <- renderPlot({
+  diff_volcano_plot <- reactive({
     req(input$diff_volcano_alpha)
     req(input$diff_volcano_logfc_threshold)
     if (input$diff_volcano_run_button > 0) {
@@ -8232,6 +8678,15 @@ server <- function(input, output, session) {
         g
       })
     }
+  })
+  
+  # Render differential test volcano plot
+  output$diff_volcano_plot <- renderPlot({
+    diff_volcano_plot()
+  })
+  
+  observeEvent(input$diff_volcano_plot, {
+    download_plot(diff_volcano_plot())
   })
   
   diff_volcano_plot_brushed_table <- reactiveVal()
@@ -8900,7 +9355,8 @@ server <- function(input, output, session) {
           options = list(container = "body", 
                          html = TRUE)
         ),
-        plotOutput("diff_go_barplot")
+        plotOutput("diff_go_barplot"), 
+        actionButton("diff_go_barplot_download", "Download plot")
       )
     }
   })
@@ -9131,8 +9587,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Render GO bar plot
-  output$diff_go_barplot <- renderPlot({
+  diff_go_barplot <- reactive({
     req(input$diff_go_barplot_xlim)
     # Set bar values
     if (input$diff_go_barplot_var == "p-value") {
@@ -9260,6 +9715,15 @@ server <- function(input, output, session) {
                          size = input$diff_go_barplot_show_des_size)
     }
     return(g)
+  })
+  
+  # Render GO bar plot
+  output$diff_go_barplot <- renderPlot({
+    diff_go_barplot()
+  })
+  
+  observeEvent(input$diff_go_barplot_download, {
+    download_plot(diff_go_barplot())
   })
   
   # Data frame of top GO terms with go column containing integer GO ids
@@ -10117,7 +10581,8 @@ server <- function(input, output, session) {
                           "Genomic position")
             ), 
             actionButton("disease_show_interactive_gbins_heatmap", "Show interactive heat map"),
-            plotOutput("disease_gbins_heat_map")
+            plotOutput("disease_gbins_heat_map"), 
+            actionButton("disease_gbins_heat_map_download", "Download plot")
           )
         }
       } else {
@@ -10150,7 +10615,8 @@ server <- function(input, output, session) {
             )
           ), 
           actionButton("disease_show_interactive_heatmap", "Show interactive heat map"),
-          plotOutput("disease_heat_map")
+          plotOutput("disease_heat_map"), 
+          actionButton("disease_heat_map_download", "Download plot")
         )
       }
     }
@@ -10351,6 +10817,10 @@ server <- function(input, output, session) {
     disease_gbins_heat_map()
   })
   
+  observeEvent(input$disease_gbins_heat_map_download, {
+    download_plot(disease_gbins_heat_map())
+  })
+  
   # Interactive heat map
   observeEvent(input$disease_show_interactive_gbins_heatmap, {
     InteractiveComplexHeatmapModal(input, output, session, disease_gbins_heat_map())
@@ -10393,6 +10863,10 @@ server <- function(input, output, session) {
   # Render disease heat map
   output$disease_heat_map <- renderPlot({
     disease_heat_map()
+  })
+  
+  observeEvent(input$disease_heat_map_download, {
+    download_plot(disease_heat_map())
   })
   
   # Interactive heat map
