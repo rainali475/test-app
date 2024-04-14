@@ -3,10 +3,10 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 pkgs <- c("shiny", "shinyBS", "shinythemes", "caret", "sortable", "mgcv", "igraph", 
           "umap", "dplyr", "purrr", "plotly", "shinyWidgets", "shinyjs", "DT", "reshape2", 
-          "rclipboard", "preprocessCore")
+          "rclipboard")
 bioc_pkgs <- c("recount3", "rhdf5", "GenomicRanges", "ComplexHeatmap", 
                "InteractiveComplexHeatmap", "TSCAN", 
-               "topGO", "limma", "GenomicAlignments", "DESeq2")
+               "topGO", "limma", "GenomicAlignments", "DESeq2", "preprocessCore")
 
 req_pkgs <- sapply(pkgs, function(pkg) {! requireNamespace(pkg, quietly = TRUE)})
 if (any(req_pkgs)) 
