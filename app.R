@@ -4,13 +4,13 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 pkgs <- c("shiny", "shinyBS", "shinythemes", "caret", "sortable", "mgcv", "igraph", 
           "umap", "dplyr", "purrr", "plotly", "shinyWidgets", "shinyjs", "DT", "reshape2", 
           "rclipboard", "preprocessCore")
-bioc_pkgs <- c("recount3", "rhdf5", "GenomicRanges", "BSgenome.Hsapiens.UCSC.hg38", 
-               "rtracklayer", "ComplexHeatmap", "InteractiveComplexHeatmap", "TSCAN", 
-               "topGO", "limma", "Rsamtools", "GenomicAlignments", "DESeq2")
+bioc_pkgs <- c("recount3", "rhdf5", "GenomicRanges", "ComplexHeatmap", 
+               "InteractiveComplexHeatmap", "TSCAN", 
+               "topGO", "limma", "GenomicAlignments", "DESeq2")
 
 req_pkgs <- sapply(pkgs, function(pkg) {! requireNamespace(pkg, quietly = TRUE)})
 if (any(req_pkgs)) 
-  install.packages(pkgs[req_pkgs])
+  install.packages(pkgs[req_pkgs], dependencies = TRUE)
 req_bioc_pkgs <- sapply(bioc_pkgs, function(pkg) {! requireNamespace(pkg, quietly = TRUE)})
 if (any(req_bioc_pkgs)) 
   BiocManager::install(bioc_pkgs[req_bioc_pkgs])
@@ -21,8 +21,8 @@ suppressMessages(library(shinythemes))
 suppressMessages(library(recount3))
 suppressMessages(library(rhdf5))
 suppressMessages(library(GenomicRanges))
-suppressMessages(library(BSgenome.Hsapiens.UCSC.hg38))
-suppressMessages(library(rtracklayer))
+# suppressMessages(library(BSgenome.Hsapiens.UCSC.hg38))
+# suppressMessages(library(rtracklayer))
 suppressMessages(library(caret))
 suppressMessages(library(sortable))
 suppressMessages(library(ComplexHeatmap))
@@ -41,7 +41,7 @@ suppressMessages(library(limma))
 suppressMessages(library(plotly))
 suppressMessages(library(shinyWidgets))
 suppressMessages(library(shinyjs))
-suppressMessages(library(Rsamtools))
+#suppressMessages(library(Rsamtools))
 suppressMessages(library(GenomicAlignments))
 suppressMessages(library(DT))
 suppressMessages(library(reshape2))
@@ -124,7 +124,7 @@ proj_df <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/pr
 proj_df$file_source <- as.factor(proj_df$file_source)
 
 # Read annotations (mapping between ENSEMBL and SYMBOL)
-annots <- readRDS("annots.rds")
+annots <- readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/annots.rds"))
 
 # Max number of clusters for genomic bin clustering used in pseudo time accessibility
 max_n_gbin <- 20
@@ -362,49 +362,12 @@ ui <- fluidPage(
         title = "BigWig download", 
         
         div(style = "display: inline-block;vertical-align: middle;", h2("BigWig Download")), 
-        #div(style = "display: inline-block;vertical-align: middle;", 
-        #    bsButton(
-        #      "bw_download_page_info", 
-        #      label = "", 
-        #      icon = icon("info"), 
-        #      style = "info", 
-        #      size = "extra-small"
-        #    )), 
-        #bsPopover(
-        #  id = "bw_download_page_info",
-        #  title = "<h3>BIRD prediction BigWig files</h3>",
-        #  content = do.call(paste0, 
-        #                    popover_contents$bw_download_page_info),
-        #  placement = "right",
-        #  trigger = "focus",
-        #  options = list(container = "body", 
-        #                 html = TRUE)
-        #),
         
         uiOutput("download_bw_ui"), 
         
         br(), 
         
         div(style = "display: inline-block;vertical-align: middle;", h2("Display in UCSC Genome Browser Track Hub")), 
-        
-        #div(style = "display: inline-block;vertical-align: middle;", 
-        #    bsButton(
-        #      "bw_download_page_info", 
-        #      label = "", 
-        #      icon = icon("info"), 
-        #      style = "info", 
-        #      size = "extra-small"
-        #    )), 
-        #bsPopover(
-        #  id = "bw_download_page_info",
-        #  title = "<h3>BIRD prediction BigWig files</h3>",
-        #  content = do.call(paste0, 
-        #                    popover_contents$bw_download_page_info),
-        #  placement = "right",
-        #  trigger = "focus",
-        #  options = list(container = "body", 
-        #                 html = TRUE)
-        #),
         
         uiOutput("ucsc_hub_ui")
       )
@@ -860,29 +823,29 @@ server <- function(input, output, session) {
       # Remove redundant sample ids
       redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
       # Evaluate whether selected studies exceed size thresholds
-      if (sample_sel_limit_warn()) {
-        before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
-        after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
-        if (after_add > 20000) {
-          showModal(
-            modalDialog(
-              HTML(paste0("You tried to retrieve a set of studies with more than 20,000 samples in total, 
+      before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
+      after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
+      if (after_add > 20000) {
+        showModal(
+          modalDialog(
+            HTML(paste0("You tried to retrieve a set of studies with more than 20,000 samples in total, 
               which exceeds the size limit for retrieving data from ftp. To retrieve large studies, 
                          we recommend downloading compressed files of your studies 
                          of interest and reading them from a local path. Please go 
                          to <b>Prediction Download</b>", icon("arrow-right"), 
-                          "<b>RDS download</b> to download the compressed prediction 
+                        "<b>RDS download</b> to download the compressed prediction 
                          files and go to <b>Input Selection</b> ", icon("arrow-right"), 
-                          " <b>Select or upload sample</b> ", icon("arrow-right"), 
-                          " <b>Add sample by</b> ", icon("arrow-right"), 
-                          " <b>Select from local path</b> to add local samples.")), 
-              easyClose = TRUE, 
-              footer = NULL
-            )
+                        " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                        " <b>Add sample by</b> ", icon("arrow-right"), 
+                        " <b>Select from local path</b> to add local samples.")), 
+            easyClose = TRUE, 
+            footer = NULL
           )
-          sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
-          return(NULL)
-        }
+        )
+        sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
+        return(NULL)
+      }
+      if (sample_sel_limit_warn()) {
         if (((before_add < 100) && (after_add >= 100)) ||
             ((before_add < 500) && (after_add >= 500)) ||
             ((before_add < 1000) && (after_add >= 1000)) ||
@@ -905,12 +868,12 @@ server <- function(input, output, session) {
             msg <- paste0(msg, "<br><br>Since you are trying to retrieve large studies, 
                          we recommend downloading compressed files of your studies 
                          of interest and reading them from a local path. Please go 
-                         to <b>Prediction Download</b>", icon("arrow-right"), 
-                         "<b>RDS download</b> to download the compressed prediction 
+                         to <b>Prediction Download</b> ", icon("arrow-right"), 
+                         " <b>RDS download</b> to download the compressed prediction 
                          files and go to <b>Input Selection</b> ", icon("arrow-right"), 
                          " <b>Select or upload sample</b> ", icon("arrow-right"), 
                          " <b>Add sample by</b> ", icon("arrow-right"), 
-                         " <b>Select from local path</b> to add local samples.")
+                         " <b>Select from local path</b> to add local samples to your selection.")
           }
           showModal(
             modalDialog(
@@ -4328,7 +4291,7 @@ server <- function(input, output, session) {
                   options = list(scrollX = TRUE))
   })
   
-  output$pt_gene_chracc_gene_dist_plot <- renderPlotly({
+  pt_gene_chracc_gene_dist_plot <- reactive({
     gbin_names <- rownames(pca_top_var_pred_mat())
     sel_gbin_gene <- gbin_tss[gbin_names, ]
     sel_gbin_gene <- sel_gbin_gene[! is.na(sel_gbin_gene$distance), ]
@@ -4340,6 +4303,10 @@ server <- function(input, output, session) {
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
     ggplotly(g)
+  })
+  
+  output$pt_gene_chracc_gene_dist_plot <- renderPlotly({
+    pt_gene_chracc_gene_dist_plot()
   })
   
   output$pt_gene_expr_gene_dist_plot <- renderPlotly({
@@ -4366,7 +4333,7 @@ server <- function(input, output, session) {
     } else if ((input$pt_show_panel == "Accessibility along pseudotime") &&
                (! is.null(input$pt_chracc_dat_type)) && (input$pt_chracc_dat_type == "Gene average")) {
       maxdist <- input$pt_gene_chracc_gene_maxdist
-    } else {return(NULL)}
+    } else {return(data.frame(genes=c()))}
     nearest_genes <- unique(sel_gbin_gene[sel_gbin_gene$distance <= maxdist, ]$gene)
     if ((input$pt_show_panel == "Nearest gene expression along pseudotime") & input$pt_expr_dat_type == "Gene average") {
       # ensembl_annots <- annots[annots$SYMBOL %in% nearest_genes, ]
