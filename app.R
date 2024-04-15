@@ -825,7 +825,7 @@ server <- function(input, output, session) {
       # Evaluate whether selected studies exceed size thresholds
       before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
       after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
-      if (after_add > 20000) {
+      if (after_add > 1000) {
         showModal(
           modalDialog(
             HTML(paste0("You tried to retrieve a set of studies with more than 20,000 samples in total, 
