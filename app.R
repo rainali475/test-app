@@ -370,6 +370,15 @@ ui <- fluidPage(
         div(style = "display: inline-block;vertical-align: middle;", h2("Display in UCSC Genome Browser Track Hub")), 
         
         uiOutput("ucsc_hub_ui")
+      ), 
+      
+      # Tab panel for rds prediction download
+      tabPanel(
+        title = "rds download", 
+        
+        div(style = "display: inline-block;vertical-align: middle;", h2("rds Download")), 
+        
+        uiOutput("download_rds_ui")
       )
     ), 
     
@@ -1620,6 +1629,20 @@ server <- function(input, output, session) {
     }
   })
   
+  # UI for rds download
+  output$download_rds_ui <- renderUI({
+    if (nrow(selected_samples()) == 0) {
+      p("No sample selected. Please select input samples from Input Selection Tab. ")
+    } else {
+      studies <- unique(selected_samples()$project)
+      tagList(
+        p(paste("The samples you selected come from the following studies:", 
+                paste(studies, collapse = ", "))), 
+        downloadButton("rds_download", "Download rds file(s)")
+      )
+    }
+  })
+  
   # Txt download
   output$txt_download <- downloadHandler(
     filename = "BIRD_prediction.txt", 
@@ -1730,6 +1753,38 @@ server <- function(input, output, session) {
                 paste0(chr, ":", region_start, "-", region_end), 
                 hub_id, rep("1", nrow(selected_samples())))
       write.table(data.frame(args=args, vals=vals), file, row.names = F, col.names = F, quote = F)
+    }
+  )
+  
+  # RDS file download
+  output$rds_download <- downloadHandler(
+    filename = {
+      if (length(unique(selected_samples()$project)) == 1) {
+        paste0(unique(selected_samples()$project), ".rds")
+      } else {"studies_rds.zip"}
+    }, 
+    content = function(file) {
+      proj <- unique(selected_samples()$project)
+      batch <- studies_batch$batch[match(proj, studies_batch$study)]
+      if (length(proj) == 1) {
+        download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+                             batch, "/", proj, ".rds"), file)
+      } else {
+        # Make zip file
+        # Create temp folder to hold prediction files
+        tmp <- tempfile(pattern = "rds", tmpdir = tmp_dir)
+        dir.create(tmp)
+        tmp_fpaths <- c()
+        for (i in 1:length(proj)) {
+          fname <- paste0(proj[i], ".rds")
+          proj_file <- file.path(tmp, fname)
+          download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+                               batch[i], "/", proj[i], ".rds"), proj_file)
+          tmp_fpaths <- append(tmp_fpaths, proj_file)
+        }
+        zip(zipfile = file, files = tmp_fpaths, extras = '-j')
+        unlink(tmp, recursive = TRUE)
+      }
     }
   )
   
