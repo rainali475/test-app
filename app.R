@@ -2282,7 +2282,7 @@ server <- function(input, output, session) {
             )
           ), 
           tabPanel(
-            "Differential Test", 
+            "Pseudo-time Differential Test", 
             tags$div(
               style = "margin-bottom:50px; margin-top:50px",
               uiOutput("pt_diff_ui")
