@@ -99,7 +99,7 @@ gbin_snp <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/g
 #gbin_snp <- read.delim('../app files/gbin_snp.txt')
 
 # Get data.frame of overall sample prediction means
-sample_avgs <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/sample_avgs.txt')
+#sample_avgs <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/sample_avgs.txt')
 #sample_avgs <- read.delim('../app files/sample_avgs.txt')
 
 # Set recount3 url
@@ -10656,13 +10656,25 @@ server <- function(input, output, session) {
     }
   })
   
+  full_pred_df <- reactive({
+    req(nrow(selected_samples()) > 0)
+    database_pred_df <- get_database_pred_df(bird_ranges)
+    local_samps <- selected_samples()[selected_samples()$read_from == "local", c("project", "sample")]
+    local_pred_mat <- get_local_pred_mat(bird_ranges)
+    pred_df <- database_pred_df
+    if (length(local_samps) > 0) {
+      # Have local samples
+      pred_df <- cbind(pred_df, local_pred_mat)
+    } 
+    pred_df
+  })
+  
   # Prediction data.frame for disease bins
   disease_pred_df <- reactive({
     showModal(modalDialog('Retrieving sample predictions...', footer = NULL, easyClose = TRUE, size = "s"))
     hits <- findOverlaps(bird_ranges, disease_gbins())
     bird_i <- sort(unique(hits@from))
-    df <- cbind(genomic_ranges[bird_i, , drop=F], pred_mat())
-    #df <- get_database_pred_df(disease_gbins())
+    df <- full_pred_df()[bird_i, , drop=F]
     removeModal()
     df
   })
@@ -10677,16 +10689,9 @@ server <- function(input, output, session) {
     mat
   })
   
-  # Run disease SNP analysis
-  disease_res <- reactive({
-    if ((! is.null(input$disease_run_analysis)) && (input$disease_run_analysis > 0)) {
-      disease_gbins_names <- rownames(disease_pred_mat())
-      sample_all_means <- sample_avgs[colnames(disease_pred_mat()), ]
-      sample_snp_means <- colMeans(disease_pred_mat())
-      data.frame(sample = colnames(disease_pred_mat()), 
-                 snps_accessibility = sample_snp_means, 
-                 normalized_snps_accessibility = sample_snp_means / sample_all_means)
-    }
+  sample_avgs <- reactive({
+    req(nrow(selected_samples()) > 0)
+    colMeans(full_pred_df()[, 4:ncol(full_pred_df())])
   })
   
   # Disease mean and normalized mean tables
@@ -10705,7 +10710,7 @@ server <- function(input, output, session) {
     })
     colnames(mean_table) <- sel_disease
     disease_mean(mean_table)
-    sample_all_means <- sample_avgs[colnames(disease_pred_mat()), ]
+    sample_all_means <- sample_avgs()[colnames(disease_pred_mat())]
     names(sample_all_means) <- colnames(disease_pred_mat())
     normalized_mean_table <- t(sapply(colnames(disease_pred_mat()), function(sample) {
       mean_table[sample, ] / sample_all_means[sample]
