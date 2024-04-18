@@ -3,7 +3,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 pkgs <- c("shiny", "shinyBS", "shinythemes", "caret", "sortable", "mgcv", "igraph", 
           "umap", "dplyr", "purrr", "plotly", "shinyWidgets", "shinyjs", "DT", "reshape2", 
-          "rclipboard")
+          "rclipboard", "shinyFiles")
 bioc_pkgs <- c("recount3", "rhdf5", "GenomicRanges", "ComplexHeatmap", 
                "InteractiveComplexHeatmap", "TSCAN", 
                "topGO", "limma", "GenomicAlignments", "DESeq2", "preprocessCore")
@@ -48,6 +48,7 @@ suppressMessages(library(reshape2))
 suppressMessages(library(rclipboard))
 suppressMessages(library(DESeq2))
 suppressMessages(library(preprocessCore))
+suppressMessages(library(shinyFiles))
 
 #options(shiny.error = browser)
 options(timeout = 800)
@@ -174,28 +175,7 @@ ui <- fluidPage(
             style = "margin-bottom:50px; margin-top:50px;",
             sidebarLayout(
               sidebarPanel(
-                selectInput(
-                  "sample_add_method", 
-                  label = tags$span("Add sample by: ", 
-                                    bsButton("sample_add_method_info", 
-                                             label = "", 
-                                             icon = icon("info"), 
-                                             style = "info", 
-                                             size = "extra-small")), 
-                  choices = list("Select from prediction database" = "sel_db",
-                                 "Upload text file (under construction)" = "upload_txt", 
-                                 "Upload bam file (under construction)" = "upload_bam")
-                ), 
-                bsPopover(
-                  id = "sample_add_method_info",
-                  title = "<h4>Sample selection methods and steps</h4>",
-                  content = do.call(paste0, 
-                                    popover_contents$sample_add_method_info),
-                  placement = "right",
-                  trigger = "focus",
-                  options = list(container = "body", 
-                                 html = TRUE)
-                ),
+                uiOutput("sample_add_method_ui"), 
                 actionButton("show_sel_samples_table", "Show selected samples table", style = "width: 100%; border: 1px solid white;"), 
                 bsTooltip(
                   "show_sel_samples_table", 
@@ -441,9 +421,9 @@ ui <- fluidPage(
       
       # Tab panel for differential analysis
       tabPanel(
-        title = "Differential analysis", 
+        title = "Group differential analysis", 
         
-        div(style = "display: inline-block;vertical-align: middle;", h2("Differential analysis")), 
+        div(style = "display: inline-block;vertical-align: middle;", h2("Group differential analysis")), 
         div(style = "display: inline-block;vertical-align: middle;", 
             bsButton(
               "diff_page_info", 
@@ -498,8 +478,78 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  # Render UI for sample selection method
+  output$sample_add_method_ui <- renderUI({
+    method_choices <- list(
+      "Select from prediction database" = "sel_db"
+      # "Upload text file (under construction)" = "upload_txt", 
+      # "Upload bam file (under construction)" = "upload_bam"
+    )
+    is_local <- Sys.getenv('SHINY_PORT') == ""
+    if (is_local) {
+      method_choices <- list(
+        "Select from prediction database" = "sel_db",
+        "Select from local path" = "sel_loc_path"
+        # "Upload text file (under construction)" = "upload_txt", 
+        # "Upload bam file (under construction)" = "upload_bam"
+      )
+    }
+    tagList(
+      selectInput(
+        "sample_add_method", 
+        label = tags$span("Add sample by: ", 
+                          bsButton("sample_add_method_info", 
+                                   label = "", 
+                                   icon = icon("info"), 
+                                   style = "info", 
+                                   size = "extra-small")), 
+        choices = method_choices
+      ), 
+      bsPopover(
+        id = "sample_add_method_info",
+        title = "<h4>Sample selection methods and steps</h4>",
+        content = do.call(paste0, 
+                          popover_contents$sample_add_method_info),
+        placement = "right",
+        trigger = "focus",
+        options = list(container = "body", 
+                       html = TRUE)
+      ),
+    )
+  })
+  
+  if (Sys.getenv('SHINY_PORT') == "") {
+    dir_roots <- c(working=paste0(getwd(), "/"))
+    if (.Platform$OS.type == "windows") {
+      sysdrivereport <- system("wmic logicaldisk get caption", intern = TRUE)
+      drives <- substr(sysdrivereport[-c(1, length(sysdrivereport))], 1, 1)
+      for (d in drives) {
+        dir_roots[d] <- paste0(d, ":/")
+      }
+    } else {
+      # unix OS
+      dir_roots["root"] <- "/"
+    }
+    shinyDirChoose(input, 'loc_path', roots=dir_roots, filetypes=c("", "rds"))
+  }
+  
+  loc_path <- reactiveVal(NULL)
+  
+  # Render message stating selected local path 
+  output$loc_path_msg <- renderText({
+    req(input$loc_path)
+    if (all(class(input$loc_path) == "list")) {
+      loc_path(paste0(dir_roots[input$loc_path$root], do.call(file.path, input$loc_path$path[-1])))
+      paste("Selected directory:", loc_path())
+    } else {
+      loc_path(NULL)
+      "No path has been selected. "
+    }
+  })
+  
   # Render UI for sample selection and upload
   output$sample_add_ui <- renderUI({
+    req(input$sample_add_method)
     if (input$sample_add_method == "sel_db") {
       tagList(
         div(style = "display: inline-block;vertical-align: middle;", h3("Add samples from database")), 
@@ -554,6 +604,33 @@ server <- function(input, output, session) {
           )
         )
       )
+    } else if (input$sample_add_method == "sel_loc_path") {
+      tagList(
+        div(style = "display: inline-block;vertical-align: middle;", h3("Add samples from local path")), 
+        # div(style = "display: inline-block;vertical-align: middle;", 
+        #     bsButton(
+        #       "loc_path_sel_info", 
+        #       label = "", 
+        #       icon = icon("info"), 
+        #       style = "info", 
+        #       size = "extra-small"
+        #     )), 
+        # bsPopover(
+        #   id = "loc_path_sel_info",
+        #   title = "<h3>BIRD predictions database</h3>",
+        #   content = do.call(paste0, 
+        #                     popover_contents$loc_path_sel_info),
+        #   placement = "right",
+        #   trigger = "focus",
+        #   options = list(container = "body", 
+        #                  html = TRUE)
+        # ),
+        HTML("<p>All predictions should be <b>log<sub>2</sub>-transformed</b>. </p>"),
+        shinyDirButton('loc_path', 'Select a local directory', 'Please select a directory', FALSE), 
+        textOutput("loc_path_msg"), 
+        HTML("<p>Please make sure the rds files in your indicated path are downloaded from our database. </p>"),
+        uiOutput("loc_path_sample_add_ui")
+      )
     } else if (input$sample_add_method == "upload_txt") {
       tagList(
         fileInput("sample_add_txt_file", 
@@ -579,6 +656,344 @@ server <- function(input, output, session) {
         textOutput("sample_add_bam_submission_msg")
       )
     }
+  })
+  
+  # Render UI for local path files selection
+  output$loc_path_sample_add_ui <- renderUI({
+    req(loc_path())
+    tabsetPanel(
+      # Tab panel for project selection
+      tabPanel(
+        title = "Step 1: Project Selection", 
+        textOutput("loc_proj_rds_msg"),
+        tags$div(
+          style = "margin-top:30px; margin-bottom:30px;", 
+          div(style = "display: inline-block;vertical-align: middle;", h4("Local project selection table")), 
+          div(style = "display: inline-block;vertical-align: middle;", bsButton("loc_project_sel_table_info", 
+                                                                                label = "", 
+                                                                                icon = icon("info"), 
+                                                                                style = "info", 
+                                                                                size = "extra-small")), 
+          bsPopover(
+            id = "loc_project_sel_table_info",
+            title = "<h4>Project selection table</h4>",
+            content = do.call(paste0, 
+                              popover_contents$loc_project_sel_table_info),
+            placement = "right",
+            trigger = "focus",
+            options = list(container = "body", 
+                           html = TRUE)
+          ),
+          # Display table with project info
+          DT::dataTableOutput('loc_proj_table'), 
+          actionButton("loc_proj_sel_check", "Check project RDS file"), 
+          textOutput("loc_proj_sel_msg")
+        )
+      ), 
+      
+      # Tab panel for samples selection
+      tabPanel(
+        title = "Step 2: Sample Selection", 
+        tags$div(
+          style = "margin-top:30px; margin-bottom:30px;", 
+          radioButtons(
+            "loc_sample_sel_method", 
+            "Sample selection method: ",
+            choices = c("Select from table", "Select with text input"), 
+            selected = "Select from table"
+          ),
+          uiOutput("loc_sample_sel_ui")
+        )
+      )
+    )
+  })
+  
+  # Local path studies
+  loc_studies <- reactiveVal(character())
+  
+  # Update local path studies
+  observeEvent(loc_path(), {
+    rds_files <- list.files(path = loc_path(), pattern = ".rds$")
+    studies <- gsub(".rds$", "", rds_files)
+    studies <- studies[studies %in% proj_df$project]
+    loc_studies(studies)
+  })
+  
+  # Render message for rds files read from local path
+  output$loc_proj_rds_msg <- renderText({
+    # List local path rds
+    rds_files <- list.files(path = loc_path(), pattern = ".rds$")
+    if (length(rds_files) == 0) {
+      return("No valid files found. Please select a different directory. ")
+    }
+    paste0("The following rds files are found in your selected directory: ", 
+           paste(rds_files, collapse = ", "), 
+           ". The files matching existing project ids are listed below.")
+  })
+  
+  # Render local project table
+  output$loc_proj_table <- DT::renderDataTable(proj_df[proj_df$project %in% loc_studies(), ],
+                                               rownames = FALSE,
+                                               filter = list(position = 'top', clear = FALSE))
+  
+  # Message for local project selection
+  loc_proj_sel_msg <- reactiveVal(NULL)
+  
+  # Render message
+  output$loc_proj_sel_msg <- renderText({loc_proj_sel_msg()})
+  
+  # Check selected local projects
+  observeEvent(input$loc_proj_sel_check, {
+    if (length(input$loc_proj_table_rows_selected) == 0) {
+      loc_proj_sel_msg("You have not selected any projects. Please select projects by clicking on the table above. ")
+      return(NULL)
+    }
+    loc_proj_table <- proj_df[proj_df$project %in% loc_studies(), ]
+    sel_proj <- loc_proj_table$project[input$loc_proj_table_rows_selected]
+    rds_files <- file.path(loc_path(), paste0(sel_proj, ".rds"))
+    tot_nsamp <- sum(loc_proj_table$n_samples[input$loc_proj_table_rows_selected])
+    expected_read_time <- tot_nsamp * 0.04
+    read_min <- floor(expected_read_time / 60)
+    read_sec <- signif(((expected_read_time / 60) - read_min) * 60, digits = 1)
+    if (read_sec == 60) {
+      read_sec <- 0
+      read_min <- read_min + 1
+    }
+    showModal(modalDialog(
+      p(paste0("You are about to read the following selected files: ", 
+               paste(rds_files, collapse = ", "), 
+               ". If these files are full studies downloaded from database, they 
+               should together take approximately ", 
+               read_min, "m", read_sec, "s to be read. Please be aware that 
+               performing this action will cause any previously selected local 
+               samples to be removed from sample selection table. ")), 
+      actionButton("loc_proj_sel_submit", "Okay"), 
+      easyClose = TRUE
+    ))
+  })
+  
+  # Local studies matrix
+  loc_studies_li <- reactiveVal(list())
+  
+  # Check selected projects 
+  observeEvent(input$loc_proj_sel_submit, {
+    loc_proj_table <- proj_df[proj_df$project %in% loc_studies(), ]
+    sel_proj <- loc_proj_table$project[input$loc_proj_table_rows_selected]
+    rds_files <- file.path(loc_path(), paste0(sel_proj, ".rds"))
+    valid_proj <- c()
+    # Update local studies matrices
+    studies_li <- list()
+    for (i in 1:length(sel_proj)) {
+      proj_mat <- tryCatch({readRDS(rds_files[i])}, error = function(e) {NULL})
+      if (is.null(proj_mat)) next
+      if (! inherits(proj_mat, "matrix")) next
+      if (mode(proj_mat) != "numeric") next
+      if (nrow(proj_mat) != nrow(genomic_ranges)) next
+      samps <- colnames(proj_mat)
+      if (anyDuplicated(samps) || (length(samps) == 0)) next
+      actual_samps <- all_samples_df$sample_id[all_samples_df$project_id == sel_proj[i]]
+      if (! all(samps %in% actual_samps)) next
+      if (! all(is.finite(proj_mat))) next
+      studies_li[[sel_proj[i]]] <- proj_mat
+      valid_proj <- c(valid_proj, sel_proj[i])
+    }
+    loc_studies_li(studies_li)
+    loc_proj_sel_msg(
+      if (length(valid_proj) == 0) {
+        "No valid study RDS files found in selected files. "
+      } else {
+        paste0("The following studies are read from selected files: ", 
+               paste(valid_proj, collapse = ", "))
+      }
+    )
+    # Remove previously selected local samples from selected samples table
+    selected_samples(selected_samples()[selected_samples()$read_from != "local", ])
+    removeModal()
+  })
+  
+  # Render UI for sample selection
+  output$loc_sample_sel_ui <- renderUI({
+    if (input$loc_sample_sel_method == "Select from table") {
+      tagList(
+        div(style = "display: inline-block;vertical-align: middle;", h4("Sample selection table")), 
+        div(style = "display: inline-block;vertical-align: middle;", bsButton("sample_sel_table_info", 
+                                                                              label = "", 
+                                                                              icon = icon("info"), 
+                                                                              style = "info", 
+                                                                              size = "extra-small")), 
+        bsPopover(
+          id = "sample_sel_table_info",
+          title = "<h4>Sample selection table</h4>",
+          content = do.call(paste0, 
+                            popover_contents$sample_sel_table_info),
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body", 
+                         html = TRUE)
+        ),
+        # Display table with sample info
+        DT::dataTableOutput('loc_sample_table'), 
+        actionButton(
+          "loc_submit_sample_sel_table", 
+          label = "Confirm sample selection"
+        ), 
+        textOutput("loc_sample_sel_table_submission_msg")
+      )
+    } else if (input$loc_sample_sel_method == "Select with text input") {
+      tagList(
+        textAreaInput(
+          "loc_sample_sel_text", 
+          label = tags$span("Input sample ids (one sample id in each line)", 
+                            bsButton("sample_sel_text_info", 
+                                     label = "", 
+                                     icon = icon("info"), 
+                                     style = "info", 
+                                     size = "extra-small")), 
+          rows = 5
+        ),
+        bsPopover(
+          id = "sample_sel_text_info",
+          title = "<h4>Sample selection text</h4>",
+          content = do.call(paste0, 
+                            popover_contents$sample_sel_text_info),
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body", 
+                         html = TRUE)
+        ),
+        fileInput(
+          "loc_sample_sel_txt_file", 
+          "Upload txt file indicating sample ids", 
+          accept = "text/plain"
+        ),
+        actionButton(
+          "loc_submit_sample_sel_text", 
+          label = "Confirm sample selection"
+        ),
+        textOutput("loc_sample_sel_text_submission_msg")
+      )
+    }
+  })
+  
+  # Define samples data.frame based on user selection
+  loc_samples_df <- reactive({
+    sel_proj <- names(loc_studies_li())
+    df <- all_samples_df[all_samples_df$project_id %in% sel_proj, ]
+    df$project_id <- as.factor(df$project_id)
+    samples <- unique(unlist(lapply(loc_studies_li(), colnames)))
+    df <- df[df$sample_id %in% samples,]
+    df
+  })
+  
+  # Render output samples table
+  output$loc_sample_table <- DT::renderDataTable({
+    if (nrow(loc_samples_df()) > 0) {
+      df <- data.frame(loc_samples_df(), selected="")
+      df$selected[df$sample_id %in% selected_samples()$sample] <- as.character(icon("check"))
+      df$selected <- as.factor(df$selected)
+    } else {
+      df <- NULL
+    }
+    DT::datatable(df,
+                  rownames = FALSE, 
+                  filter = list(position = 'top', clear = FALSE), 
+                  escape = FALSE)
+  })
+  
+  # Make proxy for controlling selected rows
+  loc_sample_table_proxy <- DT::dataTableProxy("loc_sample_table")
+  
+  # Update selected samples when data table selection occurs and output message
+  loc_sample_sel_table_submission_msg <- reactiveVal("")
+  
+  # Render sample selection table submission message
+  output$loc_sample_sel_table_submission_msg <- renderText({
+    loc_sample_sel_table_submission_msg()
+  })
+  
+  # Update selected samples when data table selection occurs
+  observeEvent(input$loc_submit_sample_sel_table, {
+    if (length(input$loc_sample_table_rows_selected) > 0) {
+      # Make samples data.frame from selected samples
+      new_samples <- loc_samples_df()[input$loc_sample_table_rows_selected, c('project_id', 'sample_id')]
+      colnames(new_samples) <- c('project', 'sample')
+      proj_sources <- proj_df[proj_df$project %in% new_samples$project, c('project', 'file_source')]
+      proj_sources$file_source <- as.character(proj_sources$file_source)
+      new_samples <- merge(new_samples, proj_sources, all.x = TRUE)
+      # Re-order columns
+      new_samples <- new_samples[, c("file_source", "project", "sample")]
+      new_samples$read_from <- "local"
+      # Remove redundant sample ids
+      redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
+      # Update selected samples table
+      selected_samples(rbind(selected_samples(), new_samples[! new_samples$sample %in% redundant_ids, ]))
+      # Clear samples table selected rows
+      loc_sample_table_proxy %>% selectRows(NULL)
+      if (length(redundant_ids) > 0) {
+        loc_sample_sel_table_submission_msg(
+          paste("Samples added to selection. The following samples are already present in the current selection:", 
+                paste(redundant_ids, collapse = ", "))
+        )
+      } else {
+        loc_sample_sel_table_submission_msg(paste("Selection successful! Samples added to selection. "))
+      }
+    }
+  })
+  
+  # Update sample selection text area input value based on uploaded file
+  observeEvent(input$loc_sample_sel_txt_file, {
+    if (! is.null(input$loc_sample_sel_txt_file)) {
+      sample_sel_text <- paste(readLines(input$loc_sample_sel_txt_file$datapath), collapse = "\n")
+      updateTextAreaInput(
+        session, 
+        "loc_sample_sel_text", 
+        value = sample_sel_text
+      )
+    }
+  })
+  
+  # Render sample selection submission text
+  output$loc_sample_sel_text_submission_msg <- renderText({
+    loc_sample_sel_text_submission_msg()
+  })
+  
+  # Update submission text based on action button and text evaluation results
+  loc_sample_sel_text_submission_msg <- eventReactive(input$loc_submit_sample_sel_text, {
+    # Read sample ids from submitted text
+    sample_ids <- unlist(strsplit(input$loc_sample_sel_text, split = "\n"))
+    sample_ids <- sapply(sample_ids, function(sample_id) {
+      sample_id <- gsub(" ", "", sample_id)
+      sample_id <- gsub("\t", "", sample_id)
+      sample_id
+    })
+    sample_ids <- sample_ids[sample_ids != ""]
+    sample_ids <- unique(sample_ids)
+    if (length(sample_ids) == 0) {
+      return(paste("Selection failed - input is empty."))
+    }
+    # Check if sample ids exist
+    if (any(! sample_ids %in% loc_samples_df()$sample_id)) {
+      bad_samples <- sample_ids[which(! sample_ids %in% loc_samples_df()$sample_id)]
+      return(paste0("Selection failed. The following samples are not found in selected projects: ", 
+                    paste(unique(bad_samples), collapse = ", ")))
+    }
+    new_samples <- loc_samples_df()[loc_samples_df()$sample_id %in% sample_ids, c('project_id', 'sample_id')]
+    colnames(new_samples) <- c('project', 'sample')
+    proj_sources <- proj_df[proj_df$project %in% new_samples$project, c('project', 'file_source')]
+    proj_sources$file_source <- as.character(proj_sources$file_source)
+    new_samples <- merge(new_samples, proj_sources, all.x = TRUE)
+    # Re-order columns
+    new_samples <- new_samples[, c("file_source", "project", "sample")]
+    new_samples$read_from <- "local"
+    # Check if there is any redundant sample ids
+    redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
+    # Update selected samples table
+    selected_samples(rbind(selected_samples(), new_samples[! new_samples$sample %in% redundant_ids, ]))
+    if (length(redundant_ids) > 0) {
+      return(paste("Samples added to selection. The following samples are already present in the current selection:", 
+                   paste(redundant_ids, collapse = ", ")))
+    }
+    return(paste("Selection completed!"))
   })
   
   # Render UI for project selection
@@ -705,7 +1120,7 @@ server <- function(input, output, session) {
                                                                               size = "extra-small")), 
         bsPopover(
           id = "sample_sel_table_info",
-          title = "<h4>Project selection table</h4>",
+          title = "<h4>Sample selection table</h4>",
           content = do.call(paste0, 
                             popover_contents$sample_sel_table_info),
           placement = "right",
@@ -758,8 +1173,8 @@ server <- function(input, output, session) {
   })
   
   # Reactive data.frame of selected samples info
-  selected_samples <- reactiveVal(setNames(data.frame(matrix(ncol = 3, nrow = 0)), 
-                                           c("file_source", "project", "sample")))
+  selected_samples <- reactiveVal(setNames(data.frame(matrix(ncol = 4, nrow = 0)), 
+                                           c("file_source", "project", "sample", "read_from")))
   
   # Define samples data.frame based on user selection
   samples_df <- reactive({
@@ -788,24 +1203,24 @@ server <- function(input, output, session) {
     sample_sel_table_submission_msg()
   })
   
-  # Show pop-up modal when size of studies to be read exceed threshold
-  observeEvent(input$submit_sample_sel_table, {
-    if (length(input$sample_table_rows_selected) > 0) {
-      # Evaluate whether selected studies exceed size thresholds
-      before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
-      add_proj <- samples_df()[input$sample_table_rows_selected, c('project_id')]
-      after_add <- sum(proj_df$n_samples[proj_df$project %in% setdiff(unique(add_proj), selected_samples()$project)])
-      read_time <- 0
-      read_ram <- 0
-      if ((before_add < 100) && (after_add >= 100)) {
-        read_time <- ceiling(after_add / 10)
-        msg <- paste("The samples you selected require reading prediction data from", 
-                     length(union(unique(add_proj), unique(selected_samples()$project))), 
-                     "studies, which together includes", after_add, 
-                     "samples to be read from server. Approximately ")
-      }
-    }
-  })
+  # # Show pop-up modal when size of studies to be read exceed threshold
+  # observeEvent(input$submit_sample_sel_table, {
+  #   if (length(input$sample_table_rows_selected) > 0) {
+  #     # Evaluate whether selected studies exceed size thresholds
+  #     before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
+  #     add_proj <- samples_df()[input$sample_table_rows_selected, c('project_id')]
+  #     after_add <- sum(proj_df$n_samples[proj_df$project %in% setdiff(unique(add_proj), selected_samples()$project)])
+  #     read_time <- 0
+  #     read_ram <- 0
+  #     if ((before_add < 100) && (after_add >= 100)) {
+  #       read_time <- ceiling(after_add / 10)
+  #       msg <- paste("The samples you selected require reading prediction data from", 
+  #                    length(union(unique(add_proj), unique(selected_samples()$project))), 
+  #                    "studies, which together includes", after_add, 
+  #                    "samples to be read from server. Approximately ")
+  #     }
+  #   }
+  # })
   
   # Whether to show warning for number of selected samples
   sample_sel_limit_warn <- reactiveVal(TRUE)
@@ -829,6 +1244,7 @@ server <- function(input, output, session) {
       new_samples <- merge(new_samples, proj_sources, all.x = TRUE)
       # Re-order columns
       new_samples <- new_samples[, c("file_source", "project", "sample")]
+      new_samples$read_from <- "database"
       # Remove redundant sample ids
       redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
       # Evaluate whether selected studies exceed size thresholds
@@ -1486,22 +1902,6 @@ server <- function(input, output, session) {
     HTML(paste("<p>The selected genomic positions contain", strong(n_bins_selected()), "BIRD prediction bins. </p>"))
   })
   
-  # Helper function for getting a data.frame for 1 sample prediction
-  get_pred_vec <- function(proj_id, sample_id, range) {
-    pred_vec <- c()
-    # Read prediction array for each chromosome in selected range
-    for (chr in levels(seqnames(range))) {
-      h5_file <- h5_studies[h5_studies$project == proj_id, "h5"]
-      pred_arr <- h5read(h5_file, 
-                         paste(proj_id, sample_id, chr, sep = "/"), 
-                         s3 = s3)
-      hits <- findOverlaps(chr_ranges[[chr]], range)
-      ranges_idx <- as.integer(levels(as.factor(hits@from)))
-      pred_vec <- c(pred_vec, as.vector(pred_arr[ranges_idx]))
-    }
-    return(pred_vec)
-  }
-  
   # Reactive value that stores all studies predictions read so far
   studies_mat_li <- reactiveVal(list())
   
@@ -1522,15 +1922,19 @@ server <- function(input, output, session) {
     }
   }
   
-  # Get all predictions for selected samples in data.frame
-  get_all_pred_df <- function(custom_range) {
-    studies <- unique(selected_samples()$project)
-    read_studies_pred(studies)
+  # Get all predictions for selected database samples in data.frame
+  get_database_pred_df <- function(custom_range) {
+    database_studies <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
+    read_studies_pred(database_studies)
     # Subset selected samples and range for each study
     hits <- findOverlaps(bird_ranges, custom_range)
     bird_i <- sort(unique(hits@from))
-    all_pred_li <- lapply(studies, function(study) {
-      sel_samples <- selected_samples()$sample[selected_samples()$project == study]
+    if (length(database_studies) == 0) {
+      return(genomic_ranges[bird_i, , drop=F])
+    }
+    all_pred_li <- lapply(as.character(database_studies), function(study) {
+      sel_samples <- selected_samples()$sample[(selected_samples()$project == study) & 
+                                                 (selected_samples()$read_from == "database")]
       study_mat <- studies_mat_li()[[study]]
       study_mat[bird_i, sel_samples, drop=F]
     })
@@ -1539,9 +1943,25 @@ server <- function(input, output, session) {
     return(all_pred_df)
   }
   
+  # Get all predictions for selected local samples in matrix
+  get_local_pred_mat <- function(custom_range) {
+    local_studies <- unique(selected_samples()$project[selected_samples()$read_from == "local"])
+    # Subset selected samples and range for each study
+    hits <- findOverlaps(bird_ranges, custom_range)
+    bird_i <- sort(unique(hits@from))
+    all_pred_li <- lapply(as.character(local_studies), function(study) {
+      sel_samples <- selected_samples()$sample[(selected_samples()$project == study) & 
+                                                 (selected_samples()$read_from == "local")]
+      study_mat <- loc_studies_li()[[study]]
+      study_mat[bird_i, sel_samples, drop=F]
+    })
+    pred_mat <- do.call(cbind, all_pred_li)
+    return(pred_mat)
+  }
+  
   # UI for download buttons
   output$download_zip_txt_ui <- renderUI({
-    if (nrow(selected_samples()) == 0) {
+    if (sum(selected_samples()$read_from == "database") == 0) {
       textOutput("download_msg_zip_txt")
     } else if (length(custom_gr()) == 0) {
       p("Please select at least 1 genomic bin. ")
@@ -1631,10 +2051,10 @@ server <- function(input, output, session) {
   
   # UI for rds download
   output$download_rds_ui <- renderUI({
-    if (nrow(selected_samples()) == 0) {
+    if (sum(selected_samples()$read_from == "database") == 0) {
       p("No sample selected. Please select input samples from Input Selection Tab. ")
     } else {
-      studies <- unique(selected_samples()$project)
+      studies <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
       tagList(
         p(paste("The samples you selected come from the following studies:", 
                 paste(studies, collapse = ", "))), 
@@ -1648,7 +2068,7 @@ server <- function(input, output, session) {
     filename = "BIRD_prediction.txt", 
     content = function(file) {
       # Make single txt file
-      pred_df <- get_all_pred_df(custom_gr())
+      pred_df <- get_database_pred_df(custom_gr())
       write.table(pred_df, file, row.names = FALSE, quote = FALSE, sep = "\t")
     }
   )
@@ -1663,8 +2083,8 @@ server <- function(input, output, session) {
       dir.create(tmp)
       tmp_fpaths <- c()
       # Write the appropriate prediction to table
-      pred_df <- get_all_pred_df(custom_gr())
-      predict_sample <- selected_samples()$sample
+      pred_df <- get_database_pred_df(custom_gr())
+      predict_sample <- selected_samples()$sample[selected_samples()$read_from == "database"]
       for (i in 1:length(predict_sample)) {
         sample_id <- predict_sample[i]
         fname <- paste0(sample_id, "_BIRD_prediction", ".txt")
@@ -1687,8 +2107,8 @@ server <- function(input, output, session) {
       dir.create(tmp)
       tmp_fpaths <- c()
       for (i in 1:nrow(selected_samples())) {
-        study <- selected_samples()$project
-        sample <- selected_samples()$sample
+        study <- as.character(selected_samples()$project[i])
+        sample <- selected_samples()$sample[i]
         batch <- studies_batch$batch[studies_batch$study == study]
         fname <- paste0(sample, ".bw")
         download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/bigwig/b", batch, "/", sample, ".bw"), 
@@ -1759,12 +2179,13 @@ server <- function(input, output, session) {
   # RDS file download
   output$rds_download <- downloadHandler(
     filename = {
-      if (length(unique(selected_samples()$project)) == 1) {
-        paste0(unique(selected_samples()$project), ".rds")
+      proj <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
+      if (length(proj) == 1) {
+        paste0(proj, ".rds")
       } else {"studies_rds.zip"}
     }, 
     content = function(file) {
-      proj <- unique(selected_samples()$project)
+      proj <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
       batch <- studies_batch$batch[match(proj, studies_batch$study)]
       if (length(proj) == 1) {
         download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
@@ -1788,21 +2209,31 @@ server <- function(input, output, session) {
     }
   )
   
-  download_msg <- reactive({
-    if (nrow(selected_samples())) {
+  db_download_msg <- reactive({
+    if (sum(selected_samples()$read_from == "database")) {
       paste0("Download selected genomic ranges of predictions for samples: ", 
              paste(selected_samples()$sample, collapse = ", ")) 
     } else {
-      paste("No sample selected. Please select input samples from Input Selection Tab. ")
+      paste("No sample selected from database. Please select input samples from Input Selection Tab with \"Select from prediction database\" option. ")
     }
   })
   
   output$download_msg_zip_txt <- renderText({ 
-    download_msg()
+    if (sum(selected_samples()$read_from == "database")) {
+      paste0("Download selected genomic ranges of predictions for samples: ", 
+             paste(selected_samples()$sample[selected_samples()$read_from == "database"], collapse = ", ")) 
+    } else {
+      paste("No sample selected from database. Please select more input samples from Input Selection Tab with \"Select from prediction database\" option. ")
+    }
   })
   
   output$download_msg_bw <- renderText({
-    gsub("^Download selected genomic ranges of", "Download full", download_msg())
+    if (nrow(selected_samples()) > 0) {
+      paste0("Download full predictions for samples: ", 
+             paste(selected_samples()$sample, collapse = ", ")) 
+    } else {
+      paste("No sample selected from database. Please select samples from Input Selection Tab. ")
+    }
   })
   
   output$pca_page_ui <- renderUI({
@@ -1864,9 +2295,22 @@ server <- function(input, output, session) {
   
   # Predictions as numeric matrix with rows being genomic bins and columns being samples
   pred_mat <- reactive({
-    pred_df <- get_all_pred_df(custom_gr())
-    pred_mat <- data.matrix(sapply(pred_df[, 4:ncol(pred_df)], as.numeric))
-    chr_loc <- paste0(pred_df$Chromosome, ' (', pred_df$Start, '-', pred_df$End, ')')
+    req(nrow(selected_samples()) > 0)
+    database_pred_df <- get_database_pred_df(custom_gr())
+    local_samps <- selected_samples()[selected_samples()$read_from == "local", c("project", "sample")]
+    local_pred_mat <- get_local_pred_mat(custom_gr())
+    if (length(local_samps) == 0) {
+      # Only have database samples
+      pred_mat <- data.matrix(sapply(database_pred_df[, 4:ncol(database_pred_df)], as.numeric))
+    } else if (ncol(database_pred_df) > 3) {
+      # Have both local and database samples
+      pred_mat <- data.matrix(sapply(database_pred_df[, 4:ncol(database_pred_df)], as.numeric))
+      pred_mat <- cbind(pred_mat, local_pred_mat)
+    } else {
+      # Only have local samples
+      pred_mat <- local_pred_mat
+    }
+    chr_loc <- paste0(database_pred_df$Chromosome, ' (', database_pred_df$Start, '-', database_pred_df$End, ')')
     rownames(pred_mat) <- chr_loc
     return(pred_mat)
   })
@@ -10215,7 +10659,10 @@ server <- function(input, output, session) {
   # Prediction data.frame for disease bins
   disease_pred_df <- reactive({
     showModal(modalDialog('Retrieving sample predictions...', footer = NULL, easyClose = TRUE, size = "s"))
-    df <- get_all_pred_df(disease_gbins())
+    hits <- findOverlaps(bird_ranges, disease_gbins())
+    bird_i <- sort(unique(hits@from))
+    df <- cbind(genomic_ranges[bird_i, , drop=F], pred_mat())
+    #df <- get_database_pred_df(disease_gbins())
     removeModal()
     df
   })
