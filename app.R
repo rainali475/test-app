@@ -607,28 +607,30 @@ server <- function(input, output, session) {
     } else if (input$sample_add_method == "sel_loc_path") {
       tagList(
         div(style = "display: inline-block;vertical-align: middle;", h3("Add samples from local path")), 
-        # div(style = "display: inline-block;vertical-align: middle;", 
-        #     bsButton(
-        #       "loc_path_sel_info", 
-        #       label = "", 
-        #       icon = icon("info"), 
-        #       style = "info", 
-        #       size = "extra-small"
-        #     )), 
-        # bsPopover(
-        #   id = "loc_path_sel_info",
-        #   title = "<h3>BIRD predictions database</h3>",
-        #   content = do.call(paste0, 
-        #                     popover_contents$loc_path_sel_info),
-        #   placement = "right",
-        #   trigger = "focus",
-        #   options = list(container = "body", 
-        #                  html = TRUE)
-        # ),
-        HTML("<p>All predictions should be <b>log<sub>2</sub>-transformed</b>. </p>"),
+        div(style = "display: inline-block;vertical-align: middle;",
+            bsButton(
+              "loc_path_sel_info",
+              label = "",
+              icon = icon("info"),
+              style = "info",
+              size = "extra-small"
+            )),
+        bsPopover(
+          id = "loc_path_sel_info",
+          title = "<h3>BIRD predictions database</h3>",
+          content = do.call(paste0,
+                            popover_contents$loc_path_sel_info),
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body",
+                         html = TRUE)
+        ),
+        HTML("<p>All predictions assumed to be <b>log<sub>2</sub>-transformed</b>. </p>"),
         shinyDirButton('loc_path', 'Select a local directory', 'Please select a directory', FALSE), 
         textOutput("loc_path_msg"), 
-        HTML("<p>Please make sure the rds files in your indicated path are downloaded from our database. </p>"),
+        HTML("<p>Please make sure the rds files in your indicated path are <b>downloaded from our 
+             database</b> or <b>follow the format requirement</b> listed in the popover content (information icon above). </p>"),
+        HTML("<p><b>Please be aware that selecting a new directory will cause all previously selected local samples to be removed from selection. </b></p>"), 
         uiOutput("loc_path_sample_add_ui")
       )
     } else if (input$sample_add_method == "upload_txt") {
@@ -711,12 +713,17 @@ server <- function(input, output, session) {
   # Local path studies
   loc_studies <- reactiveVal(character())
   
-  # Update local path studies
+  # Update local path studies, clear sample selection table
   observeEvent(loc_path(), {
+    # Update local path studies
     rds_files <- list.files(path = loc_path(), pattern = ".rds$")
     studies <- gsub(".rds$", "", rds_files)
     studies <- studies[studies %in% proj_df$project]
     loc_studies(studies)
+    # Clear selected local samples
+    selected_samples(selected_samples()[selected_samples()$read_from != "local", ])
+    # Clear read local studies list and sample selection table
+    loc_studies_li(list())
   })
   
   # Render message for rds files read from local path
@@ -1186,6 +1193,8 @@ server <- function(input, output, session) {
   
   # Render output samples table
   output$sample_table <- DT::renderDataTable({
+    req(samples_df())
+    req(nrow(samples_df()) > 0)
     df <- data.frame(samples_df(), selected="")
     df$selected[df$sample_id %in% selected_samples()$sample] <- as.character(icon("check"))
     df$selected <- as.factor(df$selected)
@@ -2890,6 +2899,7 @@ server <- function(input, output, session) {
   
   # Render UI for selecting data type plot along pseudotime
   output$pt_dat_along_pt_ui <- renderUI({
+    req(input$pt_dat_along_pt_ui)
     if (input$pt_show_panel == "Accessibility along pseudotime") {
       tagList(
         fluidRow(
@@ -2925,6 +2935,7 @@ server <- function(input, output, session) {
   
   # Render pseudo time output UI
   output$pt_ui <- renderUI({
+    req(input$pt_show_panel)
     if (input$pt_show_panel == "Pseudo-time Trajectory") {
       # Make plot for pseudo-time trajectory over sample clusters
       tagList(
@@ -5275,12 +5286,11 @@ server <- function(input, output, session) {
         1
       } else {
         model <- mgcv::gam(x~s(ptime,k=df))
-        pchisq(model$null.deviance - model$deviance, model$df.null - model$df.residual,lower.tail = F)                  
-      }             
+        pchisq(model$null.deviance - model$deviance, model$df.null - model$df.residual,lower.tail = F)
+      }
     })      
     fdr <- p.adjust(pval, method = "fdr")
     res <- data.frame(pvalue = pval,FDR = fdr)
-    #res[order(res[,2],res[,1]),]
   }
   
   # Perform differential tests along pt (adapted from TSCAN)
@@ -5411,7 +5421,7 @@ server <- function(input, output, session) {
                                  options = list(container = "body")),
                        radioButtons("pt_diff_go_ontology", 
                                     "GO ontology: ", 
-                                    c("Biological Process" = "BP", 
+                                    c("Biological process" = "BP", 
                                       "Molecular function" = "MF", 
                                       "Cellular component" = "CC")), 
                        sliderInput("pt_diff_go_top_n", 
@@ -10659,10 +10669,10 @@ server <- function(input, output, session) {
   full_pred_df <- reactive({
     req(nrow(selected_samples()) > 0)
     database_pred_df <- get_database_pred_df(bird_ranges)
-    local_samps <- selected_samples()[selected_samples()$read_from == "local", c("project", "sample")]
+    nlocal_samps <- sum(selected_samples()$read_from == "local")
     local_pred_mat <- get_local_pred_mat(bird_ranges)
     pred_df <- database_pred_df
-    if (length(local_samps) > 0) {
+    if (nlocal_samps > 0) {
       # Have local samples
       pred_df <- cbind(pred_df, local_pred_mat)
     } 
