@@ -1212,25 +1212,6 @@ server <- function(input, output, session) {
     sample_sel_table_submission_msg()
   })
   
-  # # Show pop-up modal when size of studies to be read exceed threshold
-  # observeEvent(input$submit_sample_sel_table, {
-  #   if (length(input$sample_table_rows_selected) > 0) {
-  #     # Evaluate whether selected studies exceed size thresholds
-  #     before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
-  #     add_proj <- samples_df()[input$sample_table_rows_selected, c('project_id')]
-  #     after_add <- sum(proj_df$n_samples[proj_df$project %in% setdiff(unique(add_proj), selected_samples()$project)])
-  #     read_time <- 0
-  #     read_ram <- 0
-  #     if ((before_add < 100) && (after_add >= 100)) {
-  #       read_time <- ceiling(after_add / 10)
-  #       msg <- paste("The samples you selected require reading prediction data from", 
-  #                    length(union(unique(add_proj), unique(selected_samples()$project))), 
-  #                    "studies, which together includes", after_add, 
-  #                    "samples to be read from server. Approximately ")
-  #     }
-  #   }
-  # })
-  
   # Whether to show warning for number of selected samples
   sample_sel_limit_warn <- reactiveVal(TRUE)
   
@@ -1242,6 +1223,7 @@ server <- function(input, output, session) {
     removeModal()
   })
   
+  # Code for starting app on local R session
   output$runapp_code <- renderText("if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")")
   
   # Update selected samples when data table selection occurs
@@ -1280,7 +1262,7 @@ server <- function(input, output, session) {
         runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
         showModal(
           modalDialog(
-            HTML(paste0("<p>You tried to retrieve a set of studies with more than 20,000 samples in total, 
+            HTML(paste0("<p>You tried to retrieve a set of studies with more than 600 samples in total, 
               which exceeds the database server's size limit for retrieving data from ftp. To retrieve large studies, 
                          we recommend downloading compressed files of your studies 
                          of interest and reading them from a local path. Please go 
@@ -1452,6 +1434,101 @@ server <- function(input, output, session) {
     new_samples <- new_samples[, c("file_source", "project", "sample")]
     # Check if there is any redundant sample ids
     redundant_ids <- new_samples$sample[new_samples$sample %in% selected_samples()$sample]
+    # Evaluate whether selected studies exceed size thresholds
+    before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
+    after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
+    if (after_add > 200000) {
+      # Exceeded size limit
+      showModal(
+        modalDialog(
+          HTML(paste0("You tried to retrieve a set of studies with more than 200,000 samples in total. 
+                        This amount of samples is not suitable for analysis with this app. Please 
+                        select fewer studies. ")), 
+          easyClose = TRUE, 
+          footer = NULL
+        )
+      )
+      return(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
+    }
+    if ((after_add > 600) && (Sys.getenv('SHINY_PORT') != "")) {
+      # Exceeded size limit for server
+      runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
+      showModal(
+        modalDialog(
+          HTML(paste0("<p>You tried to retrieve a set of studies with more than 600 samples in total, 
+              which exceeds the database server's size limit for retrieving data from ftp. To retrieve large studies, 
+                         we recommend downloading compressed files of your studies 
+                         of interest and reading them from a local path. Please go 
+                         to <b>Prediction Download</b>", icon("arrow-right"), 
+                      "<b>RDS download</b> to download the compressed prediction 
+                         files. Then, run this app from your <b>local host</b>, 
+                        go to <b>Input Selection</b> ", icon("arrow-right"), 
+                      " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                      " <b>Add sample by</b> ", icon("arrow-right"), 
+                      " <b>Select from local path</b> to add local samples.</p>")), 
+          br(), 
+          HTML(paste0("Run the following code in R to start app from local host: ")), 
+          verbatimTextOutput("runapp_code"), 
+          rclipButton(
+            inputId = "runapp_code_copy", 
+            label = "Copy code", 
+            clipText = runapp_code, 
+            icon = icon("clipboard"), 
+            style = "border: 1px solid white;"
+          ), 
+          easyClose = TRUE, 
+          footer = NULL
+        )
+      )
+      return(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
+    }
+    if (sample_sel_limit_warn()) {
+      if (((before_add < 100) && (after_add >= 100)) ||
+          ((before_add < 500) && (after_add >= 500)) ||
+          ((before_add < 1000) && (after_add >= 1000)) ||
+          ((before_add < 5000) && (after_add >= 5000)) ||
+          ((before_add < 10000) && (after_add >= 10000))) {
+        read_ram <- round(after_add / 100, digits = 1)
+        read_min <- floor(after_add / 10 / 60)
+        read_sec <- signif(((after_add / 10 / 60) - read_min) * 60, digits = 1)
+        if (read_sec == 60) {
+          read_sec <- 0
+          read_min <- read_min + 1
+        }
+        msg <- paste0("The set of samples you selected require reading prediction data from ", 
+                      length(union(unique(new_samples$project), unique(selected_samples()$project))), 
+                      " studies, which together contain ", after_add, 
+                      " samples in total. Approximately <b>", read_ram, 
+                      "GB</b> of RAM will be needed to read these studies. Data retrieval will take approximately <b>", 
+                      read_min, "m", read_sec, "s</b>.")
+        if (after_add >= 1000) {
+          msg <- paste0(msg, "<br><br>Since you are trying to retrieve large studies, 
+                         we recommend downloading compressed files of your studies 
+                         of interest and reading them from a local path. Please go 
+                         to <b>Prediction Download</b> ", icon("arrow-right"), 
+                        " <b>RDS download</b> to download the compressed prediction 
+                         files and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                        " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                        " <b>Add sample by</b> ", icon("arrow-right"), 
+                        " <b>Select from local path</b> to add local samples to your selection.")
+        }
+        showModal(
+          modalDialog(
+            div(style = "display:inline-block; vertical-align:middle;", h4("Warning")), 
+            br(), 
+            HTML(msg), 
+            checkboxInput(
+              "sample_sel_limit_warn_off", 
+              "Do not show this warning again", 
+              value = FALSE
+            ), 
+            actionButton("confirm_warning_msg", "Okay"), 
+            easyClose = FALSE, 
+            footer = NULL
+          )
+        )
+      }
+    }
     # Update selected samples table
     selected_samples(rbind(selected_samples(), new_samples[! new_samples$sample %in% redundant_ids, ]))
     if (length(redundant_ids) > 0) {
