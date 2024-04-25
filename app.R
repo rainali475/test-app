@@ -1259,11 +1259,26 @@ server <- function(input, output, session) {
       # Evaluate whether selected studies exceed size thresholds
       before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
       after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
-      if (after_add > 1000) {
+      if (after_add > 50000) {
+        # Exceeded size limit
+        showModal(
+          modalDialog(
+            HTML(paste0("You tried to retrieve a set of studies with more than 200,000 samples in total. 
+                        This amount of samples is not suitable for analysis with this app. Please 
+                        select fewer studies. ")), 
+            easyClose = TRUE, 
+            footer = NULL
+          )
+        )
+        sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
+        return(NULL)
+      }
+      if ((after_add > 1000) && (Sys.getenv('SHINY_PORT') != "")) {
+        # Exceeded size limit for server
         showModal(
           modalDialog(
             HTML(paste0("You tried to retrieve a set of studies with more than 20,000 samples in total, 
-              which exceeds the size limit for retrieving data from ftp. To retrieve large studies, 
+              which exceeds the database server's size limit for retrieving data from ftp. To retrieve large studies, 
                          we recommend downloading compressed files of your studies 
                          of interest and reading them from a local path. Please go 
                          to <b>Prediction Download</b>", icon("arrow-right"), 
