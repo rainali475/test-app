@@ -1242,6 +1242,8 @@ server <- function(input, output, session) {
     removeModal()
   })
   
+  output$runapp_code <- renderText("if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")")
+  
   # Update selected samples when data table selection occurs
   observeEvent(input$submit_sample_sel_table, {
     if (length(input$sample_table_rows_selected) > 0) {
@@ -1259,7 +1261,7 @@ server <- function(input, output, session) {
       # Evaluate whether selected studies exceed size thresholds
       before_add <- sum(proj_df$n_samples[proj_df$project %in% selected_samples()$project])
       after_add <- sum(proj_df$n_samples[proj_df$project %in% union(unique(new_samples$project), selected_samples()$project)])
-      if (after_add > 50000) {
+      if (after_add > 200000) {
         # Exceeded size limit
         showModal(
           modalDialog(
@@ -1273,20 +1275,32 @@ server <- function(input, output, session) {
         sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
         return(NULL)
       }
-      if ((after_add > 1000) && (Sys.getenv('SHINY_PORT') != "")) {
+      if ((after_add > 600) && (Sys.getenv('SHINY_PORT') != "")) {
         # Exceeded size limit for server
+        runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
         showModal(
           modalDialog(
-            HTML(paste0("You tried to retrieve a set of studies with more than 20,000 samples in total, 
+            HTML(paste0("<p>You tried to retrieve a set of studies with more than 20,000 samples in total, 
               which exceeds the database server's size limit for retrieving data from ftp. To retrieve large studies, 
                          we recommend downloading compressed files of your studies 
                          of interest and reading them from a local path. Please go 
                          to <b>Prediction Download</b>", icon("arrow-right"), 
                         "<b>RDS download</b> to download the compressed prediction 
-                         files and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                         files. Then, run this app from your <b>local host</b>, 
+                        go to <b>Input Selection</b> ", icon("arrow-right"), 
                         " <b>Select or upload sample</b> ", icon("arrow-right"), 
                         " <b>Add sample by</b> ", icon("arrow-right"), 
-                        " <b>Select from local path</b> to add local samples.")), 
+                        " <b>Select from local path</b> to add local samples.</p>")), 
+            br(), 
+            HTML(paste0("Run the following code in R to start app from local host: ")), 
+            verbatimTextOutput("runapp_code"), 
+            rclipButton(
+              inputId = "runapp_code_copy", 
+              label = "Copy code", 
+              clipText = runapp_code, 
+              icon = icon("clipboard"), 
+              style = "border: 1px solid white;"
+            ), 
             easyClose = TRUE, 
             footer = NULL
           )
