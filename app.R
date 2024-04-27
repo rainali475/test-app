@@ -120,7 +120,7 @@ all_samples_df <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_f
 #all_samples_df <- read.delim('../app files/samples_df.txt')
 
 # Read projects table
-proj_df <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/proj_df.txt')
+proj_df <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/proj_df.rds'))
 #proj_df <- read.delim('../app files/proj_df.txt')
 proj_df$file_source <- as.factor(proj_df$file_source)
 
