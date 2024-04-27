@@ -3005,7 +3005,7 @@ server <- function(input, output, session) {
   
   # Render UI for selecting data type plot along pseudotime
   output$pt_dat_along_pt_ui <- renderUI({
-    req(input$pt_dat_along_pt_ui)
+    req(input$pt_show_panel)
     if (input$pt_show_panel == "Accessibility along pseudotime") {
       tagList(
         fluidRow(
@@ -5544,7 +5544,7 @@ server <- function(input, output, session) {
         )
       })
     } else {
-      p("Select sample groups and click on Perform Test to perform differential test on selected groups. ")
+      p("Please click on Perform Test to perform differential test on selected groups. ")
     }
   })
   
