@@ -2242,14 +2242,15 @@ server <- function(input, output, session) {
                 "pix",
                 "position",
                 "trackHubs")
-      args <- c(args, paste0("hub_", hub_id, "_", selected_samples()$sample, "_sel"))
       vals <- c(chr, "mammal", "hg38", "2.0", "2.0", "false", 
                 paste0("hub_", hub_id, "_BIRD_predictions"), 
                 "1", "", "0", "1", "0", "0", "0", "1", "1", "0", "0", "0", "0", "0", 
                 "selected", "1", "Human", "1000", 
                 paste0(chr, ":", region_start, "-", region_end), 
-                hub_id, rep("1", nrow(selected_samples())))
-      write.table(data.frame(args=args, vals=vals), file, row.names = F, col.names = F, quote = F)
+                hub_id)
+      track_ids <- gsub("\\.", "_", make.names(all_samples_df$sample_id))
+      sel_tracks <- paste0("hub_", hub_id, "_", track_ids, "_sel ", as.integer(all_samples_df$sample_id %in% selected_samples()$sample))
+      writeLines(c(paste(args, vals), sel_tracks), file)
     }
   )
   
