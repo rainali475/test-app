@@ -182,6 +182,7 @@ ui <- fluidPage(
                   options = list(container = "body", 
                                  html = TRUE)
                 ),
+                actionButton("sel_example_dat", "Select example dataset (GTEx adrenal gland)", style = "width: 100%; border: 1px solid white;"),
                 actionButton("clear_sel_samples", "Clear sample selection", style = "width: 100%; border: 1px solid white;")
               ), 
               mainPanel(
@@ -1878,12 +1879,23 @@ server <- function(input, output, session) {
   
   # Clear selected samples on button click
   observeEvent(input$clear_sel_samples_confirm, {
-    selected_samples(setNames(data.frame(matrix(ncol = 3, nrow = 0)), 
-                              c("file_source", "project", "sample")))
+    selected_samples(setNames(data.frame(matrix(ncol = 4, nrow = 0)), 
+                              c("file_source", "project", "sample", "read_from")))
     user_txt_gr_list(list())
     user_txt_pred_df(data.frame(matrix(nrow = length(bird_ranges), ncol = 0)))
     user_bam_pred_df(data.frame(matrix(nrow = length(bird_ranges), ncol = 0)))
     removeModal()
+  })
+  
+  # Select example data set ADRENAL_GLAND
+  observeEvent(input$sel_example_dat, {
+    selected_samples(data.frame(file_source="gtex", 
+                                project="ADRENAL_GLAND", 
+                                sample=all_samples_df$sample_id[all_samples_df$project_id %in% "ADRENAL_GLAND"], 
+                                read_from="database"))
+    showModal(modalDialog("All samples in GTEx study ADRENAL_GLAND have been selected. 
+                          All other previously selected samples are removed from selection. ", 
+                          footer = NULL, easyClose = TRUE))
   })
   
   output$download_bird_range_bed <- downloadHandler(
