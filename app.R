@@ -65,8 +65,6 @@ bird_ranges <- GRanges(seqnames = genomic_ranges$Chromosome,
                        ranges = IRanges(start = genomic_ranges$Start, 
                                         end = genomic_ranges$End))
 
-il6_range <- bird_ranges[595879:595884]
-
 chromosomes <- paste0("chr", c(1:22, "X"))
 
 # Get max ranges for each chromosome
@@ -227,14 +225,7 @@ ui <- fluidPage(
             # Default range
             conditionalPanel(
               condition = "input.all_sel_method == 'Use default range'", 
-              p("The following bins are selected: "),
-              HTML(paste0("<p>", 
-                          paste(paste(seqnames(il6_range), 
-                                      start(il6_range), 
-                                      '-', 
-                                      end(il6_range)), 
-                                collapse = '<br>'), 
-                          "</p>"))
+              p("All BIRD bins in chromosome 1 are selected. ")
             ),
             
             # BIRD range
@@ -678,7 +669,7 @@ server <- function(input, output, session) {
                                                                                 size = "extra-small")), 
           bsPopover(
             id = "loc_project_sel_table_info",
-            title = "<h4>Project selection table</h4>",
+            title = "<h4>Local project selection table</h4>",
             content = do.call(paste0, 
                               popover_contents$loc_project_sel_table_info),
             placement = "right",
@@ -1953,8 +1944,10 @@ server <- function(input, output, session) {
   # Custom input ranges from range selection tab
   custom_gr <- reactive({
     if (input$all_sel_method == 'Use default range') {
-      # Default ranges is around IL6 gene
-      return(il6_range)
+      # Default ranges is chr1
+      return(GRanges(seqnames = "chr1", 
+                     ranges = IRanges(start = chr_max_ranges["chr1", "start"], 
+                                      end = chr_max_ranges["chr1", "end"])))
     } 
     if (input$all_sel_method == 'Use entire BIRD range') {
       # All BIRD output ranges
