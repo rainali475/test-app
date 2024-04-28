@@ -10836,70 +10836,72 @@ server <- function(input, output, session) {
   # Render UI panel for disease SNP analysis results
   output$disease_res_ui <- renderUI({
     if ((! is.null(input$disease_run_analysis)) && (input$disease_run_analysis > 0)) {
-      if (length(unique(disease_gbins_table()$disease_trait)) == 1) {
-        # For single disease/trait selection
-        tabsetPanel(
-          tabPanel(
-            title = "Result table", 
-            downloadButton("download_disease_single_res", "Download result table"),
-            DT::dataTableOutput("disease_single_res_table")
-          ), 
-          tabPanel(
-            title = "Bar plot", 
-            radioButtons(
-              "disease_barplot_var", 
-              "", 
-              choices = list("Normalized mean log2 predicted accessibility" = "normalized_mean",
-                             "Mean log2 predicted accessibility" = "mean")
+      isolate({
+        if (length(unique(disease_gbins_table()$disease_trait)) == 1) {
+          # For single disease/trait selection
+          tabsetPanel(
+            tabPanel(
+              title = "Result table", 
+              downloadButton("download_disease_single_res", "Download result table"),
+              DT::dataTableOutput("disease_single_res_table")
             ), 
-            fluidRow(
-              column(
-                width = 4, 
-                radioButtons(
-                  "disease_barplot_sort_by", 
-                  label = "Sort bar plot rows by: ", 
-                  choices = c("Default order" = "default", 
-                              "Decreasing accessibility" = "decrease", 
-                              "Increasing accessibility" = "increase", 
-                              "Custom order" = "custom")
+            tabPanel(
+              title = "Bar plot", 
+              radioButtons(
+                "disease_barplot_var", 
+                "", 
+                choices = list("Normalized mean log2 predicted accessibility" = "normalized_mean",
+                               "Mean log2 predicted accessibility" = "mean")
+              ), 
+              fluidRow(
+                column(
+                  width = 4, 
+                  radioButtons(
+                    "disease_barplot_sort_by", 
+                    label = "Sort bar plot rows by: ", 
+                    choices = c("Default order" = "default", 
+                                "Decreasing accessibility" = "decrease", 
+                                "Increasing accessibility" = "increase", 
+                                "Custom order" = "custom")
+                  )
+                ), 
+                column(
+                  width = 8, 
+                  uiOutput("disease_barplot_sort_details_ui")
                 )
               ), 
-              column(
-                width = 8, 
-                uiOutput("disease_barplot_sort_details_ui")
-              )
-            ), 
-            plotlyOutput("disease_barplot")
-          ),
-          tabPanel(
-            title = "Heat map", 
-            uiOutput("disease_heatmap_ui")
+              plotlyOutput("disease_barplot")
+            ),
+            tabPanel(
+              title = "Heat map", 
+              uiOutput("disease_heatmap_ui")
+            )
           )
-        )
-      } else {
-        # For multiple disease/traits
-        tabsetPanel(
-          tabPanel(
-            title = "Result table", 
-            p("Mean sample disease/trait predicted accessibility table"),
-            downloadButton("download_disease_res_mean", "Download mean table"),
-            DT::dataTableOutput("disease_res_mean_table"),
-            p("Normalized mean sample disease/trait predicted accessibility table"),
-            downloadButton("download_disease_res_normalized_mean", "Download normalized mean table"),
-            DT::dataTableOutput("disease_res_normalized_mean_table")
-          ), 
-          tabPanel(
-            title = "Disease/trait heat map", 
-            radioButtons(
-              "disease_heatmap_var", 
-              "", 
-              choices = list("Normalized mean log2 predicted accessibility" = "normalized_mean",
-                             "Mean log2 predicted accessibility" = "mean")
+        } else {
+          # For multiple disease/traits
+          tabsetPanel(
+            tabPanel(
+              title = "Result table", 
+              p("Mean sample disease/trait predicted accessibility table"),
+              downloadButton("download_disease_res_mean", "Download mean table"),
+              DT::dataTableOutput("disease_res_mean_table"),
+              p("Normalized mean sample disease/trait predicted accessibility table"),
+              downloadButton("download_disease_res_normalized_mean", "Download normalized mean table"),
+              DT::dataTableOutput("disease_res_normalized_mean_table")
             ), 
-            uiOutput("disease_heatmap_ui")
+            tabPanel(
+              title = "Disease/trait heat map", 
+              radioButtons(
+                "disease_heatmap_var", 
+                "", 
+                choices = list("Normalized mean log2 predicted accessibility" = "normalized_mean",
+                               "Mean log2 predicted accessibility" = "mean")
+              ), 
+              uiOutput("disease_heatmap_ui")
+            )
           )
-        )
-      }
+        }
+      })
     }
   })
   
