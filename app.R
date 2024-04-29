@@ -2754,6 +2754,11 @@ server <- function(input, output, session) {
       explained_var <- data.frame(t(summary(pca_res_full())$importance))
       explained_var <- explained_var[paste0('PC', 1:2), 'Proportion.of.Variance']
       g <- g + xlab(paste0("PC1 (", explained_var[1]*100, "%)")) + ylab(paste0("PC2 (", explained_var[2]*100, "%)"))
+      g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+        theme(panel.border = element_blank(), axis.line = element_line()) + 
+        theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+        theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+        theme(panel.background = element_rect(fill = "white"))
       g
     }
   })
@@ -2787,6 +2792,11 @@ server <- function(input, output, session) {
     var_plot <- var_plot + geom_line() + geom_point()
     var_plot <- var_plot + xlab("Principal Components") + ylab("Proportion of Variance Explained")
     var_plot <- var_plot + geom_text(aes(label=explained_var$Proportion.of.Variance), vjust=-0.25)
+    var_plot <- var_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     var_plot
   })
   
@@ -2810,6 +2820,11 @@ server <- function(input, output, session) {
     cumvar_plot <- cumvar_plot + geom_vline(xintercept = paste0('PC', opt_n_pc()), linetype = "dashed")
     cumvar_plot <- cumvar_plot + xlab("Principal Components") + ylab("Cumulative Proportion of Variance Explained")
     cumvar_plot <- cumvar_plot + geom_text(aes(label=cumvar$Cumulative.Proportion), vjust=-0.25)
+    cumvar_plot <- cumvar_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     cumvar_plot
   })
   
@@ -3872,6 +3887,11 @@ server <- function(input, output, session) {
     wcss_plot <- wcss_plot + geom_line() + geom_point()
     wcss_plot <- wcss_plot + xlab("Number of Clusters") + ylab("Total Within Cluster Sum of Squares")
     wcss_plot <- wcss_plot + geom_vline(xintercept = opt_n_gbin_clust(), linetype="dashed", color = "blue")
+    wcss_plot <- wcss_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     wcss_plot
   })
   
@@ -3913,6 +3933,11 @@ server <- function(input, output, session) {
     explained_var <- summary(gbin_pca_res())$importance[2, 1:2]
     clust_plot <- clust_plot + xlab(paste0("PC1 (", explained_var[1] * 100, "% variance)"))
     clust_plot <- clust_plot + ylab(paste0("PC2 (", explained_var[2] * 100, "% variance)"))
+    clust_plot <- clust_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     removeModal()
     clust_plot
   })
@@ -3942,6 +3967,11 @@ server <- function(input, output, session) {
                          mapping = aes(UMAP_1, UMAP_2, colour = factor(gbin_clust_res()$cluster)))
     clust_plot <- clust_plot + geom_point()
     clust_plot$labels$colour <- "Cluster"
+    clust_plot <- clust_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     removeModal()
     clust_plot
   })
@@ -4057,11 +4087,11 @@ server <- function(input, output, session) {
     q <- q + geom_point(aes_string(color = "State"))
     q <- q + geom_line(aes(Pseudotime, predict), data = exprdata)
     q <- q + ylab("Predicted log2 chromatin accessibility") + xlab("Pseudotime")
-    q <- q + theme(strip.background = element_rect(colour = "white", 
-                                                   fill = "white")) + theme(panel.border = element_blank(), 
-                                                                            axis.line = element_line()) + theme(panel.grid.minor.x = element_blank(), 
-                                                                                                                panel.grid.minor.y = element_blank()) + theme(panel.grid.major.x = element_blank(), 
-                                                                                                                                                              panel.grid.major.y = element_blank()) + theme(panel.background = element_rect(fill = "white"))
+    q <- q + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     q
   }
   
@@ -4440,6 +4470,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -4460,6 +4495,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -4893,6 +4933,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -4911,6 +4956,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -5331,6 +5381,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Selected genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -5793,6 +5848,11 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Significant genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -6523,11 +6583,11 @@ server <- function(input, output, session) {
         g$labels$colour <- "Significance"
       } 
       g <- g + ylab("Average predicted log2 chromatin accessibility") + xlab("Pseudotime")
-      g <- g + theme(strip.background = element_rect(colour = "white", 
-                                                     fill = "white")) + theme(panel.border = element_blank(), 
-                                                                              axis.line = element_line()) + theme(panel.grid.minor.x = element_blank(), 
-                                                                                                                  panel.grid.minor.y = element_blank()) + theme(panel.grid.major.x = element_blank(), 
-                                                                                                                                                                panel.grid.major.y = element_blank()) + theme(panel.background = element_rect(fill = "white"))
+      g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+        theme(panel.border = element_blank(), axis.line = element_line()) + 
+        theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+        theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+        theme(panel.background = element_rect(fill = "white"))
       p <- ggplotly(g, tooltip = 'text')
       p
     }
@@ -6589,13 +6649,6 @@ server <- function(input, output, session) {
     go_sig_pred_mat <- pca_top_var_pred_mat()[go_sig_bins,]
     if (input$pt_diff_go_chracc_plot == "Trend lines") {
       if (input$pt_diff_go_chracc_form == "Gene average") {
-        # gbin_names <- rownames(pca_top_var_pred_mat())
-        # topvar_gbin_tss <- gbin_tss[rownames(pca_top_var_pred_mat()), ]
-        # topvar_gbin_tss <- topvar_gbin_tss[topvar_gbin_tss$distance <= input$pt_diff_gene_maxdist, ]
-        # topvar_gbin_tss <- topvar_gbin_tss[! is.na(rownames(topvar_gbin_tss)), ]
-        # gene_avg <- aggregate(pca_top_var_pred_mat()[rownames(topvar_gbin_tss), ], 
-        #                       by=list(gene=topvar_gbin_tss$gene), 
-        #                       mean)
         chracc <- aggregate(go_sig_pred_mat, 
                             by=list(gene=pt_diff_go_chracc_sel_genes_table()$nearest_gene), 
                             mean)
@@ -6623,11 +6676,11 @@ server <- function(input, output, session) {
         g$labels$colour <- "Genomic bin"
       }
       g <- g + ylab("Predicted log2 chromatin accessibility") + xlab("Pseudotime")
-      g <- g + theme(strip.background = element_rect(colour = "white", 
-                                                     fill = "white")) + theme(panel.border = element_blank(), 
-                                                                              axis.line = element_line()) + theme(panel.grid.minor.x = element_blank(), 
-                                                                                                                  panel.grid.minor.y = element_blank()) + theme(panel.grid.major.x = element_blank(), 
-                                                                                                                                                                panel.grid.major.y = element_blank()) + theme(panel.background = element_rect(fill = "white"))
+      g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+        theme(panel.border = element_blank(), axis.line = element_line()) + 
+        theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+        theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+        theme(panel.background = element_rect(fill = "white"))
       p <- ggplotly(g, tooltip = 'text')
       return(p)
     } else {
@@ -6987,6 +7040,11 @@ server <- function(input, output, session) {
                          color = "white", lineheight = 0.7,
                          size = input$pt_diff_go_barplot_show_des_size)
     }
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     return(g)
   })
   
@@ -7782,6 +7840,11 @@ server <- function(input, output, session) {
                                            '<br>Project: ', project, 
                                            '<br>Sample: ', sample))) + geom_point()
     g$labels$colour <- "Project"
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     p <- ggplotly(g, 
                   tooltip = 'text', 
                   source = "diff_plotsel_plot")
@@ -7903,6 +7966,11 @@ server <- function(input, output, session) {
                                            '<br>Sample: ', sample, 
                                            '<br>Group: ', group))) + geom_point()
     g$labels$colour <- "Group"
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     p <- ggplotly(g, 
                   tooltip = 'text')
     p
@@ -8247,6 +8315,11 @@ server <- function(input, output, session) {
       pca_plot <- ggplot(data = top_pcs, 
                          mapping = aes(PC1, PC2, colour = factor(proj))) + geom_point()
       pca_plot$labels$colour <- "Project"
+      pca_plot <- pca_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+        theme(panel.border = element_blank(), axis.line = element_line()) + 
+        theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+        theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+        theme(panel.background = element_rect(fill = "white"))
       pca_plot
     }
   })
@@ -8279,6 +8352,11 @@ server <- function(input, output, session) {
     var_plot <- var_plot + geom_line() + geom_point()
     var_plot <- var_plot + xlab("Principal Components") + ylab("Cumulative Proportion of Variance Explained")
     var_plot <- var_plot + geom_text(aes(label=explained_var$Proportion.of.Variance), vjust=-0.25)
+    var_plot <- var_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     var_plot
   })
   
@@ -8301,6 +8379,11 @@ server <- function(input, output, session) {
     cumvar_plot <- cumvar_plot + geom_vline(xintercept = paste0('PC', opt_n_pc()), linetype = "dashed")
     cumvar_plot <- cumvar_plot + xlab("Principal Components") + ylab("Proportion of Variance Explained")
     cumvar_plot <- cumvar_plot + geom_text(aes(label=cumvar$Cumulative.Proportion), vjust=-0.25)
+    cumvar_plot <- cumvar_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     cumvar_plot
   })
   
@@ -8417,6 +8500,11 @@ server <- function(input, output, session) {
     wcss_plot <- wcss_plot + geom_line() + geom_point()
     wcss_plot <- wcss_plot + xlab("Number of Clusters") + ylab("Total Within Cluster Sum of Squares")
     wcss_plot <- wcss_plot + geom_vline(xintercept = diff_opt_n_sample_clust(), linetype="dashed", color = "blue")
+    wcss_plot <- wcss_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     wcss_plot
   })
   
@@ -8454,6 +8542,11 @@ server <- function(input, output, session) {
     explained_var <- summary(diff_pca_res_full())$importance[2, 1:2]
     clust_plot <- clust_plot + xlab(paste0("PC1 (", explained_var[1] * 100, "% variance)"))
     clust_plot <- clust_plot + ylab(paste0("PC2 (", explained_var[2] * 100, "% variance)"))
+    clust_plot <- clust_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor.x = element_blank(), panel.grid.minor.y = element_blank()) + 
+      theme(panel.grid.major.x = element_blank(), panel.grid.major.y = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     removeModal()
     clust_plot
   })
@@ -9422,6 +9515,10 @@ server <- function(input, output, session) {
                             binwidth = 100)
     g <- g + xlab("Distance from bin to nearest gene") + ylab("Count") 
     g <- g + ggtitle("Significant genomic bins distance distribution to nearest gene TSS")
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     ggplotly(g)
   })
   
@@ -9736,6 +9833,7 @@ server <- function(input, output, session) {
                   title = "Graph of -log<sub>10</sub>p-values vs. GO IDs. Size is proportional to annotation size. Click, hover, and select to interact with graph. ", 
                   placement = "top", 
                   options = list(container = "body")),
+        downloadButton("diff_go_pval_graph_download", "Download figure"),
         hr(), 
         h4("GO terms p-value graph selected points"),
         DT::dataTableOutput('diff_go_pval_graph_brushed')
@@ -10271,6 +10369,10 @@ server <- function(input, output, session) {
                          color = "white", lineheight = 0.7,
                          size = input$diff_go_barplot_show_des_size)
     }
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
     return(g)
   })
   
@@ -11105,13 +11207,16 @@ server <- function(input, output, session) {
       g <- g + ylab('Mean log<sub>2</sub> accessibility')
       g <- g + labs(fill = 'Mean log<sub>2</sub> accessibility')
       g <- g + geom_bar(stat = 'identity', width = 0.5) + coord_flip() + theme_bw()
-      p <- ggplotly(g) %>% style(hoverinfo = 'none')
     } else if (input$disease_barplot_var == "normalized_mean") {
       g <- g + ylab('Normalized mean log<sub>2</sub> accessibility')
       g <- g + labs(fill = 'Normalized mean <br>log<sub>2</sub> accessibility')
       g <- g + geom_bar(stat = 'identity', width = 0.5) + coord_flip() + theme_bw()
-      p <- ggplotly(g) %>% style(hoverinfo = 'none')
     }
+    g <- g + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
+      theme(panel.border = element_blank(), axis.line = element_line()) + 
+      theme(panel.grid.minor = element_blank(), panel.grid.major = element_blank()) + 
+      theme(panel.background = element_rect(fill = "white"))
+    p <- ggplotly(g) %>% style(hoverinfo = 'none')
     p
   })
   
