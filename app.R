@@ -4,7 +4,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 pkgs <- c("shiny", "shinyBS", "shinythemes", "caret", "sortable", "mgcv", "igraph", 
           "umap", "dplyr", "purrr", "plotly", "shinyWidgets", "shinyjs", "DT", "reshape2", 
           "rclipboard", "shinyFiles")
-bioc_pkgs <- c("recount3", "GenomicRanges", "ComplexHeatmap", 
+bioc_pkgs <- c("recount3", "GenomicRanges", "ComplexHeatmap", "org.Hs.eg.db", 
                "InteractiveComplexHeatmap", 
                "topGO", "limma", "GenomicAlignments", "DESeq2", "preprocessCore")
 
@@ -23,6 +23,7 @@ suppressMessages(library(GenomicRanges))
 suppressMessages(library(caret))
 suppressMessages(library(sortable))
 suppressMessages(library(ComplexHeatmap))
+suppressMessages(library(org.Hs.eg.db))
 suppressMessages(library(InteractiveComplexHeatmap))
 suppressMessages(library(mgcv))
 suppressMessages(library(igraph))
@@ -1019,6 +1020,7 @@ server <- function(input, output, session) {
   output$proj_sel_ui <- renderUI({
     if (input$proj_sel_method == "Select from table") {
       tagList(
+        uiOutput("large_studies_msg_ui"),
         div(style = "display: inline-block;vertical-align: middle;", h4("Project selection table")), 
         div(style = "display: inline-block;vertical-align: middle;", bsButton("project_sel_table_info", 
                                                                               label = "", 
@@ -1073,13 +1075,89 @@ server <- function(input, output, session) {
     }
   })
   
+  # UI for large study manipulation message for app running on server
+  output$large_studies_msg_ui <- renderUI({
+    if (Sys.getenv('SHINY_PORT') != "") {
+      wellPanel(
+        fluidRow(
+          column(
+            6, 
+            p("Reading studies with more than 600 samples exceeds shinyapps.io RAM limit, 
+              so such large studies are not shown in the project selection table. 
+              You will need to run this app from local R session to work with these studies. 
+              Click on button on the right to see instructions for working with large studies. ")
+          ), 
+          column(
+            6, 
+            actionButton(
+              "show_large_study_instructions", 
+              "Show instructions for working with large studies"
+            ),
+            checkboxInput(
+              "proj_table_show_large_studies", 
+              "Show large studies with more than 600 samples", 
+              value = FALSE
+            )
+          )
+        )
+      )
+    }
+  })
+  
+  # Show large studies instructions
+  observeEvent(input$show_large_study_instructions,{
+    runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
+    showModal(
+      modalDialog(
+        HTML(paste0("<p>You need to run the app from local R session to work with large studies. 
+                      Run the following code in R to start app from local host: </p>")), 
+        verbatimTextOutput("runapp_code"), 
+        rclipButton(
+          inputId = "runapp_code_copy", 
+          label = "Copy code", 
+          clipText = runapp_code, 
+          icon = icon("clipboard"), 
+          style = "border: 1px solid white;"
+        ), 
+        br(), 
+        HTML(paste0("<p>There are 2 recommended options for working with large studies. 
+              <ol>
+              <li>Run app locally and read samples from database
+              <p>Run app from local host and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                    " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                    " <b>Add sample by</b> ", icon("arrow-right"), 
+                    " <b>Select from database</b> to add samples from database.</p>
+              </li>
+              <li>Run app locally and read samples from local path
+              <p>Please go to <b>Prediction Download</b> ", icon("arrow-right"), 
+                    " <b>RDS download</b> to download the compressed prediction 
+                         files. Then, run this app from your <b>local host</b>, 
+                        go to <b>Input Selection</b> ", icon("arrow-right"), 
+                    " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                    " <b>Add sample by</b> ", icon("arrow-right"), 
+                    " <b>Select from local path</b> to add local samples.</p>
+              </li>
+              </ol>
+              </p>")),
+        easyClose = TRUE, 
+        footer = NULL
+      )
+    )
+  })
+  
   # Reactive value containing selected projects index
   proj_table_rows_selected <- reactiveVal()
   
   # Render project table
-  output$proj_table <- DT::renderDataTable(proj_df,
-                                           rownames = FALSE,
-                                           filter = list(position = 'top', clear = FALSE))
+  output$proj_table <- DT::renderDataTable({
+    df <- proj_df
+    if (!is.null(input$proj_table_show_large_studies) && (! input$proj_table_show_large_studies)) {
+      df <- proj_df[proj_df$n_samples <= 600, ]
+    }
+    DT::datatable(df,
+                  rownames = FALSE,
+                  filter = list(position = 'top', clear = FALSE))
+  })
   
   # Update project selection text area input value based on uploaded file
   observeEvent(input$proj_sel_txt_file, {
@@ -1293,18 +1371,9 @@ server <- function(input, output, session) {
       showModal(
         modalDialog(
           HTML(paste0("<p>You tried to retrieve a set of studies with more than 600 samples in total, 
-              which exceeds the database server's size limit for retrieving data from ftp. To retrieve large studies, 
-                         we recommend downloading compressed files of your studies 
-                         of interest and reading them from a local path. Please go 
-                         to <b>Prediction Download</b>", icon("arrow-right"), 
-                      "<b>RDS download</b> to download the compressed prediction 
-                         files. Then, run this app from your <b>local host</b>, 
-                        go to <b>Input Selection</b> ", icon("arrow-right"), 
-                      " <b>Select or upload sample</b> ", icon("arrow-right"), 
-                      " <b>Add sample by</b> ", icon("arrow-right"), 
-                      " <b>Select from local path</b> to add local samples.</p>")), 
-          br(), 
-          HTML(paste0("Run the following code in R to start app from local host: ")), 
+              which exceeds shinyapps.io RAM limit. 
+              You need to run the app from local R session to work with large studies. 
+                      Run the following code in R to start app from local host: </p>")), 
           verbatimTextOutput("runapp_code"), 
           rclipButton(
             inputId = "runapp_code_copy", 
@@ -1313,6 +1382,26 @@ server <- function(input, output, session) {
             icon = icon("clipboard"), 
             style = "border: 1px solid white;"
           ), 
+          br(), 
+          HTML(paste0("<p>There are 2 recommended options for working with large studies. 
+              <ol>
+              <li>Run app locally and read samples from database
+              <p>Run app from local host and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                      " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                      " <b>Add sample by</b> ", icon("arrow-right"), 
+                      " <b>Select from database</b> to add samples from database.</p>
+              </li>
+              <li>Run app locally and read samples from local path
+              <p>Please go to <b>Prediction Download</b> ", icon("arrow-right"), 
+                      " <b>RDS download</b> to download the compressed prediction 
+                         files. Then, run this app from your <b>local host</b>, 
+                        go to <b>Input Selection</b> ", icon("arrow-right"), 
+                      " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                      " <b>Add sample by</b> ", icon("arrow-right"), 
+                      " <b>Select from local path</b> to add local samples.</p>
+              </li>
+              </ol>
+              </p>")),
           easyClose = TRUE, 
           footer = NULL
         )
@@ -5520,12 +5609,26 @@ server <- function(input, output, session) {
                      wellPanel(
                        wellPanel(
                          # GO options
-                         sliderInput(
-                           "pt_diff_go_alpha", 
-                           "Level of significance: ", 
-                           min = 0.0001, 
-                           max = 1, 
-                           value = 0.05
+                         fluidRow(
+                           column(
+                             6,
+                             radioButtons(
+                               "pt_diff_go_alpha_var", 
+                               "Apply significance level cut-off to: ", 
+                               c("FDR", 
+                                 "p-value")
+                             )
+                           ),
+                           column(
+                             6, 
+                             sliderInput(
+                               "pt_diff_go_alpha", 
+                               "Level of significance: ", 
+                               min = 0.0001, 
+                               max = 1, 
+                               value = 0.05
+                             )
+                           )
                          ),
                          uiOutput("pt_diff_go_sel_gbin_clusts_ui"), 
                          uiOutput("pt_diff_go_gene_maxdist_ui"), 
@@ -5763,10 +5866,16 @@ server <- function(input, output, session) {
   })
   
   output$pt_diff_go_sel_gbin_clusts_ui <- renderUI({
-    if ((input$run_pt_diff_test > 0) && (! is.null(pt_diff_test_res())) && (!is.null(input$pt_diff_go_alpha))) {
+    req(input$pt_diff_go_alpha)
+    req(input$pt_diff_go_alpha_var)
+    if ((input$run_pt_diff_test > 0) && (! is.null(pt_diff_test_res()))) {
       isolate({
         if (input$pt_diff_show_panel == "Genomic bin clusters") {
-          sig_clusts <- pt_diff_test_res()$cluster[pt_diff_test_res()$FDR < input$pt_diff_go_alpha]
+          if (input$pt_diff_go_alpha_var == "FDR") {
+            sig_clusts <- pt_diff_test_res()$cluster[pt_diff_test_res()$FDR < input$pt_diff_go_alpha]
+          } else if (input$pt_diff_go_alpha_var == "p-value") {
+            sig_clusts <- pt_diff_test_res()$cluster[pt_diff_test_res()$pvalue < input$pt_diff_go_alpha]
+          }
           selectInput(
             "pt_diff_go_sel_gbin_clusts", 
             "Significant clusters to use for GO enrichment analysis: ",
@@ -5806,19 +5915,22 @@ server <- function(input, output, session) {
                                 genomic_bin = names(pt_diff_gbin_clust_res()$cluster))
       significant_bins <- gbin_clusts$genomic_bin[gbin_clusts$cluster %in% sig_clusts]
     } else if (input$pt_diff_show_panel == "Gene average accessibility") {
-      significant_genes <- pt_diff_test_res()[pt_diff_test_res()$FDR < input$pt_diff_go_alpha, 1]
+      pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
+      significant_genes <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
       topvar_gbin_tss <- gbin_tss[rownames(pca_top_var_pred_mat()), ]
       topvar_gbin_tss <- topvar_gbin_tss[topvar_gbin_tss$distance <= input$pt_diff_gene_maxdist, ]
       significant_bins <- rownames(topvar_gbin_tss)[topvar_gbin_tss$gene %in% significant_genes]
     } else if (input$pt_diff_show_panel == "Individual genomic bins") {
-      significant_bins <- pt_diff_test_res()[pt_diff_test_res()$FDR < input$pt_diff_go_alpha, 1]
+      pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
+      significant_bins <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
     }
     significant_bins[! is.na(significant_bins)]
   })
   
   pt_diff_go_nearest_genes <- reactive({
     if (input$pt_diff_show_panel == "Gene average accessibility") {
-      nearest_genes <- pt_diff_test_res()[pt_diff_test_res()$FDR < input$pt_diff_go_alpha, 1]
+      pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
+      nearest_genes <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
       nearest_genes <- nearest_genes[! is.na(nearest_genes)]
     } else {
       gbin_names <- pt_diff_go_sig_bins()
@@ -5850,38 +5962,32 @@ server <- function(input, output, session) {
   
   # Render text message for number of significant bins and nearest genes
   output$pt_diff_go_sig_genes_msg <- renderText({
-    if ((!is.null(pt_diff_test_res())) && (input$run_pt_diff_test > 0) && (! is.null(input$pt_diff_go_alpha))) {
-      if (((input$pt_diff_show_panel != "Genomic bin clusters") || (!is.null(input$pt_diff_go_sel_gbin_clusts))) &&
-          ((input$pt_diff_show_panel == "Gene average accessibility") || (!is.null(input$pt_diff_go_gene_maxdist)))) {
-        isolate({
-          if (input$pt_diff_show_panel == "Individual genomic bins") {
-            # sig_genes <- unique(gbin_tss[pt_diff_go_sig_bins(), ]$gene)
-            # sig_genes <- sig_genes[! is.na(sig_genes)]
-            return(paste("There are", 
-                         length(pt_diff_go_sig_bins()[! is.na(pt_diff_go_sig_bins())]), 
-                         "significant bins, which map to", 
-                         length(pt_diff_go_nearest_genes()), 
-                         "nearest genes that will be used in GO term enrichment analysis. "))
-          } else if (input$pt_diff_show_panel == "Genomic bin clusters") {
-            sig_clusts <- input$pt_diff_go_sel_gbin_clusts
-            # sig_genes <- unique(gbin_tss[pt_diff_go_sig_bins(), ]$gene)
-            # sig_genes <- sig_genes[! is.na(sig_genes)]
-            return(paste("You selected", 
-                         length(sig_clusts), 
-                         "significant clusters, which contain", 
-                         length(pt_diff_go_sig_bins()[! is.na(pt_diff_go_sig_bins())]), 
-                         "bins and map to", 
-                         length(pt_diff_go_nearest_genes()), 
-                         "nearest genes that will be used in GO term enrichment analysis. "))
-          } else if (input$pt_diff_show_panel == "Gene average accessibility") {
-            # sig_genes <- pt_diff_test_res()[pt_diff_test_res()$FDR < input$pt_diff_alpha, 1]
-            # sig_genes <- sig_genes[! is.na(sig_genes)]
-            return(paste("There are", 
-                         length(pt_diff_go_nearest_genes()), 
-                         "significant genes that will be used in GO term enrichment analysis. "))
-          }
-        })
-        
+    req(pt_diff_test_res())
+    req(input$pt_diff_go_alpha)
+    req(input$pt_diff_go_alpha_var)
+    if (input$run_pt_diff_test > 0) {
+      if (input$pt_diff_show_panel == "Individual genomic bins") {
+        req(input$pt_diff_go_gene_maxdist)
+        return(paste("There are", 
+                     length(pt_diff_go_sig_bins()[! is.na(pt_diff_go_sig_bins())]), 
+                     "significant bins, which map to", 
+                     length(pt_diff_go_nearest_genes()), 
+                     "nearest genes that will be used in GO term enrichment analysis. "))
+      } else if (input$pt_diff_show_panel == "Genomic bin clusters") {
+        req(input$pt_diff_go_gene_maxdist)
+        req(input$pt_diff_go_sel_gbin_clusts)
+        sig_clusts <- input$pt_diff_go_sel_gbin_clusts
+        return(paste("You selected", 
+                     length(sig_clusts), 
+                     "significant clusters, which contain", 
+                     length(pt_diff_go_sig_bins()[! is.na(pt_diff_go_sig_bins())]), 
+                     "bins and map to", 
+                     length(pt_diff_go_nearest_genes()), 
+                     "nearest genes that will be used in GO term enrichment analysis. "))
+      } else if (input$pt_diff_show_panel == "Gene average accessibility") {
+        return(paste("There are", 
+                     length(pt_diff_go_nearest_genes()), 
+                     "significant genes that will be used in GO term enrichment analysis. "))
       }
     }
   })
