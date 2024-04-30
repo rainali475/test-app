@@ -5451,6 +5451,17 @@ server <- function(input, output, session) {
     }
   })
   
+  # Update chosen number of genomic bin clusters on optimal choice check box
+  observeEvent(input$pt_diff_use_opt_n_gbin_clust, {
+    if (input$pt_diff_use_opt_n_gbin_clust) {
+      updateSliderInput(
+        session, 
+        "pt_diff_n_gbin_clust", 
+        value = opt_n_gbin_clust()
+      )
+    }
+  })
+  
   output$pt_diff_gene_dist_plot <- renderPlotly({
     gbin_names <- rownames(pca_top_var_pred_mat())
     sel_gbin_gene <- gbin_tss[gbin_names, ]
@@ -5514,6 +5525,7 @@ server <- function(input, output, session) {
   pt_diff_test_res <- reactive({
     if (input$run_pt_diff_test > 0) {
       isolate({
+        pt_diff_test_param_change(FALSE)
         showModal(modalDialog("Running differential test...", size = "s", easyClose = TRUE, footer = NULL))
         if (input$pt_diff_show_panel == "Individual genomic bins") {
           res <- data.frame(genomic_bin = row.names(pca_top_var_pred_mat()), 
@@ -5535,8 +5547,8 @@ server <- function(input, output, session) {
             return(res)
           }
         } else if (input$pt_diff_show_panel == "Gene average accessibility") {
-          gbin_names <- rownames(pca_top_var_pred_mat())
           topvar_gbin_tss <- gbin_tss[rownames(pca_top_var_pred_mat()), ]
+          topvar_gbin_tss <- topvar_gbin_tss[! is.na(topvar_gbin_tss$distance), ]
           topvar_gbin_tss <- topvar_gbin_tss[topvar_gbin_tss$distance <= input$pt_diff_gene_maxdist, ]
           topvar_gbin_tss <- topvar_gbin_tss[! is.na(rownames(topvar_gbin_tss)), ]
           gene_avg <- aggregate(pca_top_var_pred_mat()[rownames(topvar_gbin_tss), ], 
@@ -5554,120 +5566,136 @@ server <- function(input, output, session) {
     }
   })
   
+  # Keep track of whether pt diff test parameters changed since last run
+  pt_diff_test_param_change <- reactiveVal(FALSE)
+  
+  # Parameter change
+  observe({
+    req(input$pt_diff_show_panel)
+    if (input$pt_diff_show_panel == "Genomic bin clusters") {
+      req(input$pt_diff_n_gbin_clust)
+    } else if (input$pt_diff_show_panel == "Gene average accessibility") {
+      req(input$pt_diff_gene_maxdist)
+    }
+    pt_diff_test_param_change(TRUE)
+  })
+  
   # Render differential analysis results panels
   output$pt_diff_res_panels <- renderUI({
     if ((! is.null(pt_diff_test_res())) && (input$run_pt_diff_test > 0)) {
-      isolate({
-        tabsetPanel(
-          tabPanel("Results",
-                   tags$div(
-                     style = "margin-top:30px; margin-bottom:30px;", 
-                     h4("Differential test results table"),
-                     downloadButton("pt_diff_res_download", "Download results table"),
-                     DT::dataTableOutput("pt_diff_res_table")
-                   )),
-          tabPanel("Summary",
-                   tags$div(
-                     style = "margin-top:30px; margin-bottom:30px;", 
-                     wellPanel(
-                       h4("Significant bins summary"),
-                       fluidRow(
-                         column(6, sliderInput("pt_diff_alpha", 
-                                               "Level of significance (FDR): ", 
-                                               min = 0.0001, 
-                                               max = 0.5, 
-                                               value = 0.05)), 
-                         column(6, uiOutput("pt_diff_res_sig_bed_download_ui"))
-                       ),
-                       textOutput("pt_diff_sum_text")
-                     ),
-                     wellPanel(
-                       radioButtons("pt_diff_res_hist_val",
-                                    "Histogram of: ",
-                                    c("p-value", "FDR")),
-                       h4("Histogram summary"),
-                       plotOutput("pt_diff_sum_hist"), 
-                       bsTooltip("pt_diff_sum_hist", 
-                                 title = "Histogram of selected value", 
-                                 placement = "top", 
-                                 options = list(container = "body")),
-                       actionButton("pt_diff_sum_hist_download", "Download plot")
-                     ), 
-                     wellPanel(
-                       h4("p-value adjustment line plot"),
-                       plotOutput("pt_diff_sum_lineplot"), 
-                       bsTooltip("pt_diff_sum_lineplot", 
-                                 title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
-                                 placement = "top", 
-                                 options = list(container = "body")), 
-                       actionButton("pt_diff_sum_lineplot_download", "Download plot")
-                     )
-                   )), 
-          tabPanel("Gene ontology", 
-                   tags$div(
-                     style = "margin-top:30px; margin-bottom:30px;", 
-                     wellPanel(
+      if (! pt_diff_test_param_change()) {
+        isolate({
+          tabsetPanel(
+            tabPanel("Results",
+                     tags$div(
+                       style = "margin-top:30px; margin-bottom:30px;", 
+                       h4("Differential test results table"),
+                       downloadButton("pt_diff_res_download", "Download results table"),
+                       DT::dataTableOutput("pt_diff_res_table")
+                     )),
+            tabPanel("Summary",
+                     tags$div(
+                       style = "margin-top:30px; margin-bottom:30px;", 
                        wellPanel(
-                         # GO options
+                         h4("Significant bins summary"),
                          fluidRow(
-                           column(
-                             6,
-                             radioButtons(
-                               "pt_diff_go_alpha_var", 
-                               "Apply significance level cut-off to: ", 
-                               c("FDR", 
-                                 "p-value")
+                           column(6, sliderInput("pt_diff_alpha", 
+                                                 "Level of significance (FDR): ", 
+                                                 min = 0.0001, 
+                                                 max = 0.5, 
+                                                 value = 0.05)), 
+                           column(6, uiOutput("pt_diff_res_sig_bed_download_ui"))
+                         ),
+                         textOutput("pt_diff_sum_text")
+                       ),
+                       wellPanel(
+                         radioButtons("pt_diff_res_hist_val",
+                                      "Histogram of: ",
+                                      c("p-value", "FDR")),
+                         h4("Histogram summary"),
+                         plotOutput("pt_diff_sum_hist"), 
+                         bsTooltip("pt_diff_sum_hist", 
+                                   title = "Histogram of selected value", 
+                                   placement = "top", 
+                                   options = list(container = "body")),
+                         actionButton("pt_diff_sum_hist_download", "Download plot")
+                       ), 
+                       wellPanel(
+                         h4("p-value adjustment line plot"),
+                         plotOutput("pt_diff_sum_lineplot"), 
+                         bsTooltip("pt_diff_sum_lineplot", 
+                                   title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
+                                   placement = "top", 
+                                   options = list(container = "body")), 
+                         actionButton("pt_diff_sum_lineplot_download", "Download plot")
+                       )
+                     )), 
+            tabPanel("Gene ontology", 
+                     tags$div(
+                       style = "margin-top:30px; margin-bottom:30px;", 
+                       wellPanel(
+                         wellPanel(
+                           # GO options
+                           fluidRow(
+                             column(
+                               6,
+                               radioButtons(
+                                 "pt_diff_go_alpha_var", 
+                                 "Apply significance level cut-off to: ", 
+                                 c("FDR", 
+                                   "p-value")
+                               )
+                             ),
+                             column(
+                               6, 
+                               sliderInput(
+                                 "pt_diff_go_alpha", 
+                                 "Level of significance: ", 
+                                 min = 0.0001, 
+                                 max = 1, 
+                                 value = 0.05
+                               )
                              )
                            ),
-                           column(
-                             6, 
-                             sliderInput(
-                               "pt_diff_go_alpha", 
-                               "Level of significance: ", 
-                               min = 0.0001, 
-                               max = 1, 
-                               value = 0.05
-                             )
-                           )
+                           uiOutput("pt_diff_go_sel_gbin_clusts_ui"), 
+                           uiOutput("pt_diff_go_gene_maxdist_ui"), 
+                           textOutput("pt_diff_go_sig_genes_msg"), 
+                           uiOutput("pt_diff_go_external_tool_ui"),
+                           bsTooltip("pt_diff_go_external_tool_ui", 
+                                     title = "Use and external tool to analyze significant regions/genes in greater detail. ", 
+                                     placement = "left", 
+                                     options = list(container = "body")),
+                           checkboxInput("pt_diff_go_show_sig_bins_table", 
+                                         "Show table mapping significant bins to nearest genes"), 
+                           uiOutput('pt_diff_go_sig_bins_table_ui')
                          ),
-                         uiOutput("pt_diff_go_sel_gbin_clusts_ui"), 
-                         uiOutput("pt_diff_go_gene_maxdist_ui"), 
-                         textOutput("pt_diff_go_sig_genes_msg"), 
-                         uiOutput("pt_diff_go_external_tool_ui"),
-                         bsTooltip("pt_diff_go_external_tool_ui", 
-                                   title = "Use and external tool to analyze significant regions/genes in greater detail. ", 
+                         radioButtons("pt_diff_go_ctrl", 
+                                      "Control gene list: ", 
+                                      c("All genes near selected genomic range",
+                                        "All genes near BIRD default prediction range")), 
+                         bsTooltip("pt_diff_go_ctrl", 
+                                   title = "Using only genes near the selected genomic range as control genes is recommended as using all genes will greatly slow down the runtime. ", 
                                    placement = "left", 
                                    options = list(container = "body")),
-                         checkboxInput("pt_diff_go_show_sig_bins_table", 
-                                       "Show table mapping significant bins to nearest genes"), 
-                         uiOutput('pt_diff_go_sig_bins_table_ui')
-                       ),
-                       radioButtons("pt_diff_go_ctrl", 
-                                    "Control gene list: ", 
-                                    c("All genes near selected genomic range",
-                                      "All genes near BIRD default prediction range")), 
-                       bsTooltip("pt_diff_go_ctrl", 
-                                 title = "Using only genes near the selected genomic range as control genes is recommended as using all genes will greatly slow down the runtime. ", 
-                                 placement = "left", 
-                                 options = list(container = "body")),
-                       radioButtons("pt_diff_go_ontology", 
-                                    "GO ontology: ", 
-                                    c("Biological process" = "BP", 
-                                      "Molecular function" = "MF", 
-                                      "Cellular component" = "CC")), 
-                       sliderInput("pt_diff_go_top_n", 
-                                   "Number of top GO terms to return: ", 
-                                   min = 10, 
-                                   max = 500, 
-                                   value = 20, 
-                                   step = 10), 
-                       actionButton("run_pt_diff_go", "Find top GO terms")
-                     ), 
-                     textOutput('pt_no_feasible_go_terms_warning'), 
-                     uiOutput('pt_diff_go_sel_res_ui')
-                   ))
-        )
-      })
+                         radioButtons("pt_diff_go_ontology", 
+                                      "GO ontology: ", 
+                                      c("Biological process" = "BP", 
+                                        "Molecular function" = "MF", 
+                                        "Cellular component" = "CC")), 
+                         sliderInput("pt_diff_go_top_n", 
+                                     "Number of top GO terms to return: ", 
+                                     min = 10, 
+                                     max = 500, 
+                                     value = 20, 
+                                     step = 10), 
+                         actionButton("run_pt_diff_go", "Find top GO terms")
+                       ), 
+                       textOutput('pt_no_feasible_go_terms_warning'), 
+                       uiOutput('pt_diff_go_sel_res_ui')
+                     ))
+          )
+        })
+      }
     } else {
       p("Please click on Perform Test to perform differential test on selected groups. ")
     }
@@ -5909,18 +5937,18 @@ server <- function(input, output, session) {
   
   # Significant bins from pseudo time differential test results for GO analysis
   pt_diff_go_sig_bins <- reactive({
-    if (input$pt_diff_show_panel == "Genomic bin clusters") {
+    if (isolate(input$pt_diff_show_panel) == "Genomic bin clusters") {
       sig_clusts <- input$pt_diff_go_sel_gbin_clusts
       gbin_clusts <- data.frame(cluster = as.factor(pt_diff_gbin_clust_res()$cluster), 
                                 genomic_bin = names(pt_diff_gbin_clust_res()$cluster))
       significant_bins <- gbin_clusts$genomic_bin[gbin_clusts$cluster %in% sig_clusts]
-    } else if (input$pt_diff_show_panel == "Gene average accessibility") {
+    } else if (isolate(input$pt_diff_show_panel) == "Gene average accessibility") {
       pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
       significant_genes <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
       topvar_gbin_tss <- gbin_tss[rownames(pca_top_var_pred_mat()), ]
       topvar_gbin_tss <- topvar_gbin_tss[topvar_gbin_tss$distance <= input$pt_diff_gene_maxdist, ]
       significant_bins <- rownames(topvar_gbin_tss)[topvar_gbin_tss$gene %in% significant_genes]
-    } else if (input$pt_diff_show_panel == "Individual genomic bins") {
+    } else if (isolate(input$pt_diff_show_panel) == "Individual genomic bins") {
       pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
       significant_bins <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
     }
@@ -5928,7 +5956,7 @@ server <- function(input, output, session) {
   })
   
   pt_diff_go_nearest_genes <- reactive({
-    if (input$pt_diff_show_panel == "Gene average accessibility") {
+    if (isolate(input$pt_diff_show_panel) == "Gene average accessibility") {
       pt_diff_go_alpha_var <- gsub("-", "", input$pt_diff_go_alpha_var)
       nearest_genes <- pt_diff_test_res()[pt_diff_test_res()[, pt_diff_go_alpha_var] < input$pt_diff_go_alpha, 1]
       nearest_genes <- nearest_genes[! is.na(nearest_genes)]
@@ -5966,14 +5994,14 @@ server <- function(input, output, session) {
     req(input$pt_diff_go_alpha)
     req(input$pt_diff_go_alpha_var)
     if (input$run_pt_diff_test > 0) {
-      if (input$pt_diff_show_panel == "Individual genomic bins") {
+      if (isolate(input$pt_diff_show_panel) == "Individual genomic bins") {
         req(input$pt_diff_go_gene_maxdist)
         return(paste("There are", 
                      length(pt_diff_go_sig_bins()[! is.na(pt_diff_go_sig_bins())]), 
                      "significant bins, which map to", 
                      length(pt_diff_go_nearest_genes()), 
                      "nearest genes that will be used in GO term enrichment analysis. "))
-      } else if (input$pt_diff_show_panel == "Genomic bin clusters") {
+      } else if (isolate(input$pt_diff_show_panel) == "Genomic bin clusters") {
         req(input$pt_diff_go_gene_maxdist)
         req(input$pt_diff_go_sel_gbin_clusts)
         sig_clusts <- input$pt_diff_go_sel_gbin_clusts
@@ -5984,7 +6012,7 @@ server <- function(input, output, session) {
                      "bins and map to", 
                      length(pt_diff_go_nearest_genes()), 
                      "nearest genes that will be used in GO term enrichment analysis. "))
-      } else if (input$pt_diff_show_panel == "Gene average accessibility") {
+      } else if (isolate(input$pt_diff_show_panel) == "Gene average accessibility") {
         return(paste("There are", 
                      length(pt_diff_go_nearest_genes()), 
                      "significant genes that will be used in GO term enrichment analysis. "))
@@ -5993,7 +6021,8 @@ server <- function(input, output, session) {
   })
   
   output$pt_diff_go_external_tool_ui <- renderUI({
-    if (input$pt_diff_show_panel == "Gene average accessibility") {
+    req(pt_diff_test_res())
+    if (isolate(input$pt_diff_show_panel) == "Gene average accessibility") {
       return(fluidRow(column(6, wellPanel(uiOutput("pt_diff_go_ext_gbin_func")))))
     } else {
       return(fluidRow(
@@ -6066,7 +6095,7 @@ server <- function(input, output, session) {
   output$pt_diff_go_ext_genes_txt_download <- downloadHandler(
     filename = "Pseudotime_significant_genes.txt", 
     content = function(file) {
-      if (input$pt_diff_show_panel == "Gene average accessibility") {
+      if (isolate(input$pt_diff_show_panel) == "Gene average accessibility") {
         sig_genes <- pt_diff_test_res()[pt_diff_test_res()$FDR < input$pt_diff_alpha, 1]
       } else {
         sig_genes <- unique(gbin_tss[pt_diff_go_sig_bins(), ]$gene)
