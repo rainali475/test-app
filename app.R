@@ -1640,7 +1640,11 @@ server <- function(input, output, session) {
   
   # Define samples data.frame based on user selection
   samples_df <- reactive({
-    selected_proj <- proj_df$project[proj_table_rows_selected()]
+    df <- proj_df
+    if (!is.null(input$proj_table_show_large_studies) && (! input$proj_table_show_large_studies)) {
+      df <- proj_df[proj_df$n_samples <= 600, ]
+    }
+    selected_proj <- df$project[proj_table_rows_selected()]
     df <- all_samples_df[all_samples_df$project_id %in% selected_proj, ]
     df$project_id <- as.factor(df$project_id)
     df
