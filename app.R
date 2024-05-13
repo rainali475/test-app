@@ -54,11 +54,9 @@ options(timeout = 800)
 
 # Load popover contents
 popover_contents <- readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/popover_contents.rds"))
-#popover_contents <- readRDS("popover_contents.rds")
 
 # Get genomic ranges from file
-genomic_ranges <- read.delim("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/BIRD_output_ranges.txt")
-#genomic_ranges <- read.delim("../app files/BIRD_output_ranges.txt")
+genomic_ranges <- readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/BIRD_output_ranges.rds"))
 
 bird_ranges <- GRanges(seqnames = genomic_ranges$Chromosome, 
                        ranges = IRanges(start = genomic_ranges$Start, 
@@ -80,20 +78,16 @@ rownames(chr_max_ranges) <- chromosomes
 chr_ranges <- split(bird_ranges, seqnames(bird_ranges))
 
 # Get data.frame matching BIRD genomic ranges to nearest gene
-gbin_tss <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_tss.txt')
-#gbin_tss <- read.delim('../app files/gbin_tss.txt')
+gbin_tss <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_tss.rds'))
 
 # Get data.frame matching genes to their TSS's
-gene_tss <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gene_tss.txt')
-#gene_tss <- read.delim('../app files/gene_tss.txt')
+gene_tss <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gene_tss.rds'))
 
 # Get data.frame matching diseases/traits to gbins
-snp_gbin <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/snp_gbin.txt')
-#snp_gbin <- read.delim('../app files/snp_gbin.txt')
+snp_gbin <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/snp_gbin.rds'))
 
 # Get data.frame matching gbins to diseases/traits
-gbin_snp <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_snp.txt')
-#gbin_snp <- read.delim('../app files/gbin_snp.txt')
+gbin_snp <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_snp.rds'))
 
 # Set recount3 url
 recount3_url <- "https://recount-opendata.s3.amazonaws.com/recount3/release"
@@ -106,11 +100,13 @@ tmp_dir <- tempfile(pattern = "pddb")
 dir.create(tmp_dir)
 
 # Read samples table
-all_samples_df <- read.delim('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/samples_df.txt')
+all_samples_df <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/samples_df.rds'))
+
+# Read database sample averages
+database_sample_avgs <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/sample_avgs.rds'))
 
 # Read projects table
 proj_df <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/proj_df.rds'))
-#proj_df <- read.delim('../app files/proj_df.txt')
 proj_df$file_source <- as.factor(proj_df$file_source)
 
 gtex_tissue_table <- proj_df[proj_df$file_source == "gtex", c("project", "n_samples")]
@@ -124,7 +120,7 @@ annots <- readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/an
 
 # Read GTEx SNP table
 gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_traits.rds'))
-scaled_gtex_trait <- t(scale(t(gtex_trait)))
+scaled_gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/scaled_gtex_traits.rds'))
 
 # Max number of clusters for genomic bin clustering used in pseudo time accessibility
 max_n_gbin <- 20
@@ -2423,45 +2419,32 @@ server <- function(input, output, session) {
     HTML(paste("<p>The selected genomic positions contain", strong(n_bins_selected()), "BIRD prediction bins. </p>"))
   })
   
-  # Reactive value that stores all studies predictions read so far
-  studies_mat_li <- reactiveVal(list())
-  
-  # Read predictions for studies that have not been downloaded yet
-  read_studies_pred <- function(studies) {
-    studies <- setdiff(studies, names(studies_mat_li()))
-    if (length(studies) > 0) {
-      showModal(modalDialog("Retrieving predictions...", footer = NULL, easyClose = TRUE, size = "s"))
-      pred_li <- lapply(match(studies, studies_batch$study), function(i) {
-        rds_url <- paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
-                          studies_batch$batch[i], 
-                          "/", studies_batch$study[i], ".rds")
-        readRDS(url(rds_url))
-      })
-      names(pred_li) <- studies
-      studies_mat_li(c(studies_mat_li(), pred_li))
-      removeModal()
-    }
-  }
-  
   # Get all predictions for selected database samples in data.frame
-  get_database_pred_df <- function(custom_range) {
+  get_database_pred_mat <- function(custom_range) {
     database_studies <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
-    read_studies_pred(database_studies)
     # Subset selected samples and range for each study
     hits <- findOverlaps(bird_ranges, custom_range)
     bird_i <- sort(unique(hits@from))
+    pred_mat <- matrix(nrow=length(bird_i), ncol=0)
+    gbins <- genomic_ranges[bird_i, , drop=F]
+    rownames(pred_mat) <- paste0(gbins$Chromosome, " (", gbins$Start, "-", gbins$End, ")")
     if (length(database_studies) == 0) {
-      return(genomic_ranges[bird_i, , drop=F])
+      return(pred_mat)
     }
-    all_pred_li <- lapply(as.character(database_studies), function(study) {
+    showModal(modalDialog("Retrieving predictions...", footer = NULL, easyClose = TRUE, size = "s"))
+    studies <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
+    for (i in match(studies, studies_batch$study)) {
+      study <- studies_batch$study[i]
+      rds_url <- paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+                        studies_batch$batch[i], 
+                        "/", study, ".rds")
+      study_mat <- readRDS(url(rds_url))
       sel_samples <- selected_samples()$sample[(selected_samples()$project == study) & 
                                                  (selected_samples()$read_from == "database")]
-      study_mat <- studies_mat_li()[[study]]
-      study_mat[bird_i, sel_samples, drop=F]
-    })
-    pred_mat <- do.call(cbind, all_pred_li)
-    all_pred_df <- cbind(genomic_ranges[bird_i, , drop=F], pred_mat)
-    return(all_pred_df)
+      pred_mat <- cbind(pred_mat, study_mat[bird_i, sel_samples, drop=F])
+    }
+    removeModal()
+    return(pred_mat)
   }
   
   # Get all predictions for selected local samples in matrix
@@ -2477,6 +2460,8 @@ server <- function(input, output, session) {
       study_mat[bird_i, sel_samples, drop=F]
     })
     pred_mat <- do.call(cbind, all_pred_li)
+    gbins <- genomic_ranges[bird_i, , drop=F]
+    rownames(pred_mat) <- paste0(gbins$Chromosome, " (", gbins$Start, "-", gbins$End, ")")
     return(pred_mat)
   }
   
@@ -2589,7 +2574,8 @@ server <- function(input, output, session) {
     filename = "BIRD_prediction.txt", 
     content = function(file) {
       # Make single txt file
-      pred_df <- get_database_pred_df(custom_gr())
+      pred_mat <- get_database_pred_mat(custom_gr())
+      pred_df <- cbind(parse_gbin(rownames(pred_mat)), pred_mat)
       write.table(pred_df, file, row.names = FALSE, quote = FALSE, sep = "\t")
     }
   )
@@ -2604,12 +2590,12 @@ server <- function(input, output, session) {
       dir.create(tmp)
       tmp_fpaths <- c()
       # Write the appropriate prediction to table
-      pred_df <- get_database_pred_df(custom_gr())
-      predict_sample <- selected_samples()$sample[selected_samples()$read_from == "database"]
-      for (i in 1:length(predict_sample)) {
-        sample_id <- predict_sample[i]
+      pred_mat <- get_database_pred_mat(custom_gr())
+      gbins <- parse_gbin(rownames(pred_mat))
+      for (i in 1:ncol(pred_mat)) {
+        sample_id <- colnames(pred_mat)[i]
         fname <- paste0(sample_id, "_BIRD_prediction", ".txt")
-        pred_file <- write.table(pred_df[, c('Chromosome', 'Start', 'End', sample_id)], 
+        pred_file <- write.table(cbind(gbins, pred_mat[, sample_id, drop=F]), 
                                  file.path(tmp, fname), row.names = FALSE, quote = FALSE, sep = "\t")
         tmp_fpaths <- append(tmp_fpaths, file.path(tmp, fname))
       }
@@ -2818,22 +2804,20 @@ server <- function(input, output, session) {
   # Predictions as numeric matrix with rows being genomic bins and columns being samples
   pred_mat <- reactive({
     req(nrow(selected_samples()) > 0)
-    database_pred_df <- get_database_pred_df(custom_gr())
-    local_samps <- selected_samples()[selected_samples()$read_from == "local", c("project", "sample")]
-    local_pred_mat <- get_local_pred_mat(custom_gr())
-    if (length(local_samps) == 0) {
-      # Only have database samples
-      pred_mat <- data.matrix(sapply(database_pred_df[, 4:ncol(database_pred_df)], as.numeric))
-    } else if (ncol(database_pred_df) > 3) {
-      # Have both local and database samples
-      pred_mat <- data.matrix(sapply(database_pred_df[, 4:ncol(database_pred_df)], as.numeric))
-      pred_mat <- cbind(pred_mat, local_pred_mat)
+    database_pred_mat <- get_database_pred_mat(custom_gr())
+    if (sum(selected_samples()$read_from == "local") > 0) {
+      local_pred_mat <- get_local_pred_mat(custom_gr())
+      if (ncol(database_pred_mat) > 0) {
+        # Have both local and database samples
+        pred_mat <- cbind(database_pred_mat, local_pred_mat)
+      } else {
+        # Only have local samples
+        pred_mat <- local_pred_mat
+      }
     } else {
-      # Only have local samples
-      pred_mat <- local_pred_mat
+      # Only have database samples
+      pred_mat <- database_pred_mat
     }
-    chr_loc <- paste0(database_pred_df$Chromosome, ' (', database_pred_df$Start, '-', database_pred_df$End, ')')
-    rownames(pred_mat) <- chr_loc
     return(pred_mat)
   })
   
@@ -11517,42 +11501,45 @@ server <- function(input, output, session) {
     }
   })
   
-  full_pred_df <- reactive({
-    req(nrow(selected_samples()) > 0)
-    database_pred_df <- get_database_pred_df(bird_ranges)
-    nlocal_samps <- sum(selected_samples()$read_from == "local")
-    local_pred_mat <- get_local_pred_mat(bird_ranges)
-    pred_df <- database_pred_df
-    if (nlocal_samps > 0) {
-      # Have local samples
-      pred_df <- cbind(pred_df, local_pred_mat)
-    } 
-    pred_df
-  })
-  
-  # Prediction data.frame for disease bins
-  disease_pred_df <- reactive({
-    showModal(modalDialog('Retrieving sample predictions...', footer = NULL, easyClose = TRUE, size = "s"))
-    hits <- findOverlaps(bird_ranges, disease_gbins())
-    bird_i <- sort(unique(hits@from))
-    df <- full_pred_df()[bird_i, , drop=F]
-    removeModal()
-    df
-  })
-  
   # Prediction matrix for disease bins
   disease_pred_mat <- reactive({
-    mat <- data.matrix(sapply(disease_pred_df()[, 4:ncol(disease_pred_df())], as.numeric))
-    if (nrow(disease_pred_df()) == 1) {
-      mat <- t(mat)
+    req(nrow(selected_samples()) > 0)
+    showModal(modalDialog('Retrieving sample predictions...', footer = NULL, easyClose = TRUE, size = "s"))
+    database_pred_mat <- get_database_pred_mat(disease_gbins())
+    if (sum(selected_samples()$read_from == "local") > 0) {
+      local_pred_mat <- get_local_pred_mat(disease_gbins())
+      if (ncol(database_pred_mat) > 0) {
+        # Have both local and database samples
+        pred_mat <- cbind(database_pred_mat, local_pred_mat)
+      } else {
+        # Only have local samples
+        pred_mat <- local_pred_mat
+      }
+    } else {
+      # Only have database samples
+      pred_mat <- database_pred_mat
     }
-    rownames(mat) <- paste0(disease_pred_df()$Chromosome, ' (', disease_pred_df()$Start, '-', disease_pred_df()$End, ')')
-    mat
+    removeModal()
+    pred_mat
   })
   
   sample_avgs <- reactive({
     req(nrow(selected_samples()) > 0)
-    colMeans(full_pred_df()[, 4:ncol(full_pred_df())])
+    database_sample_avgs
+    avgs <- numeric(nrow(selected_samples()))
+    names(avgs) <- colnames(pred_mat)
+    database_samples <- selected_samples()$sample[selected_samples()$read_from == "database"]
+    local_samples <- selected_samples()$sample[selected_samples()$read_from == "local"]
+    if (length(database_samples) > 0) {
+      # Get means for database samples from pre-computed sample averages
+      avgs[database_samples] <- database_sample_avgs[database_samples]
+    }
+    if (length(local_samples) > 0) {
+      local_pred_mat <- get_local_pred_mat(bird_ranges)
+      # Compute means for local samples
+      avgs[local_samples] <- colMeans(local_pred_mat)[local_samples]
+    }
+    avgs
   })
   
   # Disease mean and normalized mean tables
