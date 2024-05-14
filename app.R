@@ -458,74 +458,101 @@ ui <- fluidPage(
           options = list(container = "body", 
                          html = TRUE)
         ),
-        
-        tabsetPanel(
-          tabPanel(
-            title = "GTEx tissues SNPs", 
-            tags$div(
-              style = "margin-bottom:50px; margin-top:50px;",
-              sidebarLayout(
-                sidebarPanel(
-                  actionButton("show_gtex_tissue_table", 
-                               "Subset GTEx tissues", 
-                               style = "width: 100%; border: 1px solid white;"),
-                  actionButton("show_gtex_trait_table", 
-                               "Subset traits", 
-                               style = "width: 100%; border: 1px solid white;"),
-                  fluidRow(
-                    column(
-                      6, 
-                      h4("Row parameters"), 
-                      radioButtons(
-                        "gtex_trait_heatmap_rowsort", 
-                        "Sort rows by:",
-                        c("Hierarchical clusters", "Default order")
-                      ), 
-                      uiOutput("gtex_trait_heatmap_row_dendro"), 
-                      uiOutput("gtex_trait_heatmap_row_show_label_ui"),
-                      checkboxInput(
-                        "gtex_trait_heatmap_scale", 
-                        "Scale rows", 
-                        value = TRUE
-                      ), 
-                    ), 
-                    column(
-                      6, 
-                      h4("Column parameters"), 
-                      radioButtons(
-                        "gtex_trait_heatmap_colsort", 
-                        "Sort columns by:",
-                        c("Hierarchical clusters", "Default order")
-                      ), 
-                      uiOutput("gtex_trait_heatmap_col_dendro"), 
-                      checkboxInput(
-                        "gtex_trait_heatmap_col_show_label", 
-                        "Show column labels", 
-                        value = TRUE
-                      )
-                    )
-                  ), 
-                  actionButton("update_gtex_heatmap", 
-                               "Apply settings and update heatmap", 
-                               style = "width: 100%; border: 1px solid white;")
-                ), 
-                mainPanel(
-                  plotlyOutput("gtex_trait_heatmap"), 
-                  #actionButton("gtex_trait_heatmap_download", "Download plot"),
-                  downloadButton("download_gtex_trait_table", "Download numeric table")
-                )
+        uiOutput("disease_page_ui")
+      )
+    ), 
+    
+    # GTEx SNP panel
+    tabPanel(
+      title = "GTEx tissues SNPs", 
+      div(style = "display: inline-block;vertical-align: middle;", h2("GTEx tissues SNPs")), 
+      div(style = "display: inline-block;vertical-align: middle;", 
+          bsButton(
+            "gtex_page_info", 
+            label = "", 
+            icon = icon("info"), 
+            style = "info", 
+            size = "extra-small"
+          )), 
+      bsPopover(
+        id = "gtex_page_info",
+        title = "<h3>GTEx tissues SNPs</h3>",
+        content = do.call(paste0, 
+                          popover_contents$gtex_page_info),
+        placement = "right",
+        trigger = "focus",
+        options = list(container = "body", 
+                       html = TRUE)
+      ),
+      sidebarLayout(
+        sidebarPanel(
+          div(style = "display: inline-block;vertical-align: middle;", h3("Heatmap settings")), 
+          div(style = "display: inline-block;vertical-align: middle;", 
+              bsButton(
+                "gtex_heatmap_settings_info", 
+                label = "", 
+                icon = icon("info"), 
+                style = "info", 
+                size = "extra-small"
+              )), 
+          bsPopover(
+            id = "gtex_heatmap_settings_info",
+            title = "<h4>Heatmap settings</h4>",
+            content = do.call(paste0, 
+                              popover_contents$gtex_heatmap_settings_info),
+            placement = "right",
+            trigger = "focus",
+            options = list(container = "body", 
+                           html = TRUE)
+          ),
+          actionButton("show_gtex_tissue_table", 
+                       "Subset GTEx tissues", 
+                       style = "width: 100%; border: 1px solid white;"),
+          actionButton("show_gtex_trait_table", 
+                       "Subset traits", 
+                       style = "width: 100%; border: 1px solid white;"),
+          fluidRow(
+            column(
+              6, 
+              h4("Row parameters"), 
+              radioButtons(
+                "gtex_trait_heatmap_rowsort", 
+                "Sort rows by:",
+                c("Hierarchical clusters", "Default order")
+              ), 
+              uiOutput("gtex_trait_heatmap_row_dendro"), 
+              uiOutput("gtex_trait_heatmap_row_show_label_ui"),
+              checkboxInput(
+                "gtex_trait_heatmap_scale", 
+                "Scale rows", 
+                value = TRUE
+              ), 
+            ), 
+            column(
+              6, 
+              h4("Column parameters"), 
+              radioButtons(
+                "gtex_trait_heatmap_colsort", 
+                "Sort columns by:",
+                c("Hierarchical clusters", "Default order")
+              ), 
+              uiOutput("gtex_trait_heatmap_col_dendro"), 
+              checkboxInput(
+                "gtex_trait_heatmap_col_show_label", 
+                "Show column labels", 
+                value = TRUE
               )
             )
           ), 
-          
-          tabPanel(
-            title = "Disease SNP analysis", 
-            tags$div(
-              style = "margin-bottom:50px; margin-top:50px;",
-              uiOutput("disease_page_ui")
-            )
-          )
-        ),
+          actionButton("update_gtex_heatmap", 
+                       "Apply settings and update heatmap", 
+                       style = "width: 100%; border: 1px solid white;")
+        ), 
+        mainPanel(
+          plotlyOutput("gtex_trait_heatmap"), 
+          #actionButton("gtex_trait_heatmap_download", "Download plot"),
+          downloadButton("download_gtex_trait_table", "Download numeric table")
+        )
       )
     )
   )
