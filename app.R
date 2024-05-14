@@ -11459,17 +11459,20 @@ server <- function(input, output, session) {
     }
   )
   
+  update_disease_sel <- reactiveVal()
+  
   # Render disease snp analysis page ui
   output$disease_page_ui <- renderUI({
     if (nrow(selected_samples()) < 2) {
       p("You must select at least 2 samples to perform disease SNP analysis. ")
     } else {
+      update_disease_sel(TRUE)
       sidebarLayout(
         sidebarPanel(
           selectizeInput(
             "disease_sel", 
             "Select a disease/trait to investigate:", 
-            choices = unique(snp_gbin$disease.trait), 
+            choices = NULL, 
             multiple = TRUE
           ),
           actionButton(
@@ -11492,6 +11495,12 @@ server <- function(input, output, session) {
         )
       )
     }
+  })
+  
+  # Server-side selectize for disease_sel
+  observeEvent(update_disease_sel(), {
+    updateSelectizeInput(session, 'disease_sel', choices = unique(snp_gbin$disease.trait), server = TRUE)
+    update_disease_sel(NULL)
   })
   
   # Disease SNP table
