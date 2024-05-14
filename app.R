@@ -2882,10 +2882,14 @@ server <- function(input, output, session) {
   pca_res_full <- reactive({
     if (! all(is.na(pred_hypervar()))) {
       pred_mat_sorted <- t(pca_top_var_pred_mat())
+      print("pca_res_full")
+      print(dim(pred_mat_sorted))
+      print(class(pred_mat_sorted))
       
       # Remove near zero variance columns
-      if (length(nearZeroVar(pred_mat_sorted)) > 0) {
-        pred_mat_sorted <- pred_mat_sorted[, - nearZeroVar(pred_mat_sorted)]
+      zerovar_bins <- nearZeroVar(pred_mat_sorted)
+      if (length(zerovar_bins) > 0) {
+        pred_mat_sorted <- pred_mat_sorted[, - zerovar_bins]
       }
       
       if (any(dim(pred_mat_sorted) == 0)) {
@@ -7889,24 +7893,7 @@ server <- function(input, output, session) {
             )
           )
         ),
-        sliderInput(
-          "diff_n_pc", 
-          label = "Number of PCs to use for sample clustering: ", 
-          min = 1, 
-          max = min(30, ncol(isolate(diff_pca_res()))), 
-          value = isolate(diff_opt_n_pc()), 
-          step = 1
-        ),
-        checkboxInput(
-          "diff_use_opt_n_pc", 
-          label = "Use optimal number of PCs", 
-          value = TRUE
-        ),
-        htmlOutput('diff_opt_n_pc_msg'),
-        bsTooltip("diff_opt_n_pc_msg", 
-                  title = "The optimal number of PCs is calculated by elbow method on cumulative explained variance. ", 
-                  placement = "left", 
-                  options = list(container = "body"))
+        uiOutput("diff_n_pc_ui")
       )
     } else if (input$samples_grouping_method == "manual selection") {
       tagList(
@@ -7918,6 +7905,31 @@ server <- function(input, output, session) {
         uiOutput("diff_manual_grouping_options_ui")
       )
     }
+  })
+  
+  output$diff_n_pc_ui <- renderUI({
+    req(diff_pca_res())
+    req(diff_opt_n_pc())
+    tagList(
+      sliderInput(
+        "diff_n_pc", 
+        label = "Number of PCs to use for sample clustering: ", 
+        min = 1, 
+        max = min(30, ncol(diff_pca_res())), 
+        value = diff_opt_n_pc(), 
+        step = 1
+      ),
+      checkboxInput(
+        "diff_use_opt_n_pc", 
+        label = "Use optimal number of PCs", 
+        value = TRUE
+      ),
+      htmlOutput('diff_opt_n_pc_msg'),
+      bsTooltip("diff_opt_n_pc_msg", 
+                title = "The optimal number of PCs is calculated by elbow method on cumulative explained variance. ", 
+                placement = "left", 
+                options = list(container = "body"))
+    )
   })
   
   # UI for grouping details for specific grouping option
@@ -8573,52 +8585,42 @@ server <- function(input, output, session) {
     }
   })
   
-  # PCA top variance filtered prediction matrix
-  diff_pca_top_var_pred_mat <- reactive({
-    # Calculate hyper variance for each bin
-    n_top_var <- min(input$diff_pca_top_var, nrow(pred_hypervar()))
-    top_var_idx <- base::sort(pred_hypervar()$hypervar, 
-                              decreasing=TRUE, 
-                              index.return=TRUE)$ix[1:n_top_var]
-    top_var_idx <- base::sort(top_var_idx)
-    
-    # Filter prediction matrix by top variance rows
-    return(pred_mat()[pred_hypervar()$feature[top_var_idx], ])
-  })
-  
   # Get PCA result
   diff_pca_res_full <- reactive({
     
-    if (! all(is.na(pred_hypervar()))) {
-      pred_mat_sorted <- t(diff_pca_top_var_pred_mat())
-      
-      # Remove near zero variance columns
-      if (length(nearZeroVar(pred_mat_sorted)) > 0) {
-        pred_mat_sorted <- pred_mat_sorted[, - nearZeroVar(pred_mat_sorted)]
-      }
-      
-      if (any(dim(pred_mat_sorted) == 0)) {
-        return(NA)
-      }
-      
-      showModal(modalDialog("Performing PCA...", footer = NULL, easyClose = TRUE, size = "s"))
-      pca_result <- prcomp(pred_mat_sorted, 
-                           scale = TRUE)
-      removeModal()
-      
-      return(pca_result)
-    } 
-    return(NA)
+    req(pred_hypervar())
+    req(input$diff_pca_top_var)
+    # Calculate hyper variance for each bin
+    top_var_idx <- order(pred_hypervar()$hypervar, decreasing = T)[1:input$diff_pca_top_var]
+    top_var_idx <- sort(top_var_idx)
+    pred_mat_sorted <- t(pred_mat()[pred_hypervar()$feature[top_var_idx], ])
+    
+    # Remove near zero variance columns
+    showModal(modalDialog("Filtering near zero variance bins...", footer = NULL, easyClose = TRUE, size = "s"))
+    zerovar_bins <- nearZeroVar(pred_mat_sorted)
+    if (length(zerovar_bins) > 0) {
+      pred_mat_sorted <- pred_mat_sorted[, - zerovar_bins]
+    }
+    removeModal()
+    
+    if (any(dim(pred_mat_sorted) == 0)) {
+      return(NA)
+    }
+    
+    showModal(modalDialog("Performing PCA...", footer = NULL, easyClose = TRUE, size = "s"))
+    pca_result <- prcomp(pred_mat_sorted, 
+                         scale = TRUE)
+    removeModal()
+    
+    return(pca_result)
   })
   
   # Get transformed vectors from PCA result
   diff_pca_res <- reactive({
-    if (! all(is.na(diff_pca_res_full()))) {
-      res <- data.frame(diff_pca_res_full()$x)
-      # Sort result columns by PC
-      return(res[, paste0("PC", 1:ncol(res))])
-    }
-    return(NA)
+    req(diff_pca_res_full())
+    res <- data.frame(diff_pca_res_full()$x)
+    # Sort result columns by PC
+    return(res[, paste0("PC", 1:ncol(res))])
   })
   
   # Get optimal number of PCs
@@ -8636,7 +8638,8 @@ server <- function(input, output, session) {
   
   # Render panel with PCA results or message if no results can be generated
   output$diff_pca_plot_ui <- renderUI({
-    if (all(is.na(diff_pca_res())) || ncol(diff_pca_res()) < 2) {
+    req(diff_pca_res())
+    if (ncol(diff_pca_res()) < 2) {
       p("Too few genomic bins with significant variance.")
     } else {
       tagList(
@@ -8656,7 +8659,8 @@ server <- function(input, output, session) {
   })
   
   diff_pca_plot <- reactive({
-    if (!all(is.na(diff_pca_res())) && ncol(diff_pca_res()) >= 2) {
+    req(diff_pca_res())
+    if (ncol(diff_pca_res()) >= 2) {
       top_pcs <- diff_pca_res()[, 1:2]
       proj <- selected_samples()$project
       pca_plot <- ggplot(data = top_pcs, 
@@ -8723,7 +8727,7 @@ server <- function(input, output, session) {
                           mapping = aes(factor(rownames(cumvar), levels = rownames(cumvar)), 
                                         cumvar$Cumulative.Proportion, group=1))
     cumvar_plot <- cumvar_plot + geom_line() + geom_point()
-    cumvar_plot <- cumvar_plot + geom_vline(xintercept = paste0('PC', opt_n_pc()), linetype = "dashed")
+    cumvar_plot <- cumvar_plot + geom_vline(xintercept = paste0('PC', diff_opt_n_pc()), linetype = "dashed")
     cumvar_plot <- cumvar_plot + xlab("Principal Components") + ylab("Proportion of Variance Explained")
     cumvar_plot <- cumvar_plot + geom_text(aes(label=cumvar$Cumulative.Proportion), vjust=-0.25)
     cumvar_plot <- cumvar_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
@@ -8802,6 +8806,8 @@ server <- function(input, output, session) {
   
   # All sample clustering results for differential analysis
   all_sample_clust_res <- reactive({
+    req(diff_pca_res())
+    req(input$diff_n_pc)
     showModal(modalDialog("Clustering samples...", footer = NULL, easyClose = TRUE, size = "s"))
     scaled_df <- diff_pca_res()[, 1:input$diff_n_pc]
     set.seed(12345)
@@ -8817,6 +8823,7 @@ server <- function(input, output, session) {
   
   # Optimal number of sample clusters
   diff_opt_n_sample_clust <- reactive({
+    req(all_sample_clust_res())
     # Use elbow method to find optimal number of clusters
     wss <- sapply(all_sample_clust_res(), function(x) {x$tot.withinss})
     x <- 1:length(wss)
@@ -8880,6 +8887,8 @@ server <- function(input, output, session) {
   })
   
   diff_sample_clust_plot_pca <- reactive({
+    req(diff_pca_res_full())
+    req(diff_sample_clust_res())
     showModal(modalDialog("Making cluster plot...", footer = NULL, easyClose = TRUE, size = "s"))
     # Plot the top 2 PCs
     clust_plot <- ggplot(data = data.frame(diff_pca_res_full()$x)[, 1:2], 
