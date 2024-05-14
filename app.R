@@ -2882,9 +2882,6 @@ server <- function(input, output, session) {
   pca_res_full <- reactive({
     if (! all(is.na(pred_hypervar()))) {
       pred_mat_sorted <- t(pca_top_var_pred_mat())
-      print("pca_res_full")
-      print(dim(pred_mat_sorted))
-      print(class(pred_mat_sorted))
       
       # Remove near zero variance columns
       zerovar_bins <- nearZeroVar(pred_mat_sorted)
@@ -4837,21 +4834,21 @@ server <- function(input, output, session) {
   # Message that indicates no expression values are associated with selected bin
   output$pt_gbin_no_ensembl_msg <- renderUI({
     if (! pt_gbin_exist_ensembl()) {
-      p("The selected genomic bin's nearest gene does not map to any ENSEMBL genes in expression matrix. Please select a different bin. ")
+      p("The selected genomic bin's nearest gene does not map to any non-zero-variance ENSEMBL genes in expression matrix. Please select a different bin. ")
     }
   })
   
   pt_gbin_expr_plot <- reactive({
     pt_gbin_exist_ensembl(TRUE)
     if (length(input$top_var_gbin_table_rows_selected == 1)) {
-      gbin <- rownames(pca_top_var_pred_mat())[input$top_var_gbin_table_rows_selected]
-      gene <- gbin_tss[gbin, "gene"]
-      ensembl <- annots[annots$SYMBOL %in% gene, "ENSEMBL"]
-      if (sum(ensembl %in% rownames(scaled_expr_pt_mat())) == 0) {
+      if (! top_var_gbin_table()$match_nonzero_ensembl[input$top_var_gbin_table_rows_selected]) {
         # No matching non-zero expression value found
         pt_gbin_exist_ensembl(FALSE)
         return(NULL)
       }
+      gene <- as.character(top_var_gbin_table()$nearest_gene[input$top_var_gbin_table_rows_selected])
+      print(gene)
+      ensembl <- annots[annots$SYMBOL %in% gene, "ENSEMBL"]
       gbin_expr <- colMeans(scaled_expr_pt_mat()[ensembl, , drop=F])
       names(gbin_expr) <- colnames(scaled_expr_pt_mat())
       expr_along_pt_plot(gbin_expr, pred_order())
@@ -5136,14 +5133,15 @@ server <- function(input, output, session) {
     }
   })
   
-  # Top variance genomic bins data table
-  output$top_var_gbin_table <- DT::renderDataTable({
+  top_var_gbin_table <- reactive({
     showModal(modalDialog("Rendering top variance genomic bins information table...", footer = NULL, easyClose = TRUE, size = "s"))
     gbin_names <- rownames(pca_top_var_pred_mat())
     df <- parse_gbin(rownames(pca_top_var_pred_mat()))
     topvar_gbin_tss <- gbin_tss[gbin_names, ]
     topvar_gbin_snp <- gbin_snp[gbin_names, ]
     df$nearest_gene <- as.factor(topvar_gbin_tss$gene)
+    valid_annots <- annots[annots$ENSEMBL %in% rownames(scaled_expr_pt_mat()), ]
+    df$match_nonzero_ensembl <- topvar_gbin_tss$gene %in% valid_annots$SYMBOL
     df$distance_to_gene <- topvar_gbin_tss$distance
     df$relative_position_to_tss <- as.factor(topvar_gbin_tss$relative_position_to_tss)
     df$nearest_snp <- topvar_gbin_snp$snp_id
@@ -5155,7 +5153,12 @@ server <- function(input, output, session) {
       df <- df[df$distance_to_gene <= input$pt_gene_maxdist, ]
     }
     removeModal()
-    DT::datatable(df, 
+    df
+  })
+  
+  # Top variance genomic bins data table
+  output$top_var_gbin_table <- DT::renderDataTable({
+    DT::datatable(top_var_gbin_table(), 
                   rownames = FALSE,
                   filter = list(position = 'top', clear = FALSE), 
                   selection = 'single', 
