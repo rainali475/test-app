@@ -3211,8 +3211,8 @@ server <- function(input, output, session) {
             selectInput(
               "pt_chracc_dat_type", 
               "Which accessibility to visualize along pseudotime: ", 
-              choices = c("Genomic bin clusters", 
-                          "Individual genomic bin", 
+              choices = c("Individual genomic bin", 
+                          "Genomic bin clusters", 
                           "Gene average")
             )
           ), 
@@ -3226,8 +3226,8 @@ server <- function(input, output, session) {
             selectInput(
               "pt_expr_dat_type", 
               "Which expression to visualize along pseudotime: ", 
-              choices = c("Genomic bin clusters", 
-                          "Individual genomic bin", 
+              choices = c("Individual genomic bin", 
+                          "Genomic bin clusters", 
                           "Gene average")
             )
           ), 
@@ -5383,15 +5383,17 @@ server <- function(input, output, session) {
   
   # Make gene expression along pseudo time heat map
   pt_gene_expr_heatmap <- reactive({
+    req(input$pt_gene_expr_choose_plot == "Heatmap")
+    req(any(annots$SYMBOL %in% pca_top_var_nearest_genes()$genes))
     showModal(modalDialog("Making heat map...", footer = NULL, easyClose = TRUE, size = "s"))
     # Get expression for each gene
     ensembl_annots <- annots[annots$SYMBOL %in% pca_top_var_nearest_genes()$genes, ]
     heat_mat <- aggregate(expr_mat()[ensembl_annots$ENSEMBL, pred_order()$sample_name, drop=F], 
                           by = list(gene=ensembl_annots$SYMBOL), 
                           mean)
-    heat_mat <- as.matrix(heat_mat[, -1])
     colnames(heat_mat) <- pred_order()$sample_name
-    rownames(heat_mat) <- ensembl_annots$SYMBOL
+    rownames(heat_mat) <- heat_mat$gene
+    heat_mat <- as.matrix(heat_mat[, -1])
     if (input$pt_gene_expr_heatmap_scale) {
       heat_mat <- t(scale(t(heat_mat)))
       heat_mat <- na.omit(heat_mat)
