@@ -3388,15 +3388,27 @@ server <- function(input, output, session) {
                                  html = TRUE)),
         wellPanel(
           # Select distance limit for mapping bins to nearest genes
-          sliderInput("pt_gene_chracc_gene_maxdist", 
-                      "Maximum distance limit of bins to nearest gene TSS",
-                      min = 0, 
-                      max = 1e6, 
-                      value = 500, 
-                      post = "bp",
-                      step = 100), 
-          plotlyOutput("pt_gene_chracc_gene_dist_plot"), 
-          #actionButton("pt_gene_chracc_gene_dist_plot_download", "Download plot")
+          fluidRow(
+            column(
+              8, 
+              sliderInput("pt_gene_chracc_gene_maxdist", 
+                          "Maximum distance limit of bins to nearest gene TSS",
+                          min = 0, 
+                          max = 1e6, 
+                          value = 500, 
+                          post = "bp",
+                          step = 100), 
+            ), 
+            column(
+              4, 
+              checkboxInput(
+                "pt_show_gene_dist_plot", 
+                "Show distribution of bins distance to genes", 
+                value = FALSE
+              )
+            )
+          ),
+          uiOutput("pt_gene_chracc_gene_dist_plot_ui"),
         ),
         selectInput(
           'pt_gene_chracc_choose_plot', 
@@ -3408,6 +3420,15 @@ server <- function(input, output, session) {
       )
     }
     
+  })
+  
+  output$pt_gene_chracc_gene_dist_plot_ui <- renderUI({
+    if (input$pt_show_gene_dist_plot) {
+      tagList(
+        plotlyOutput("pt_gene_chracc_gene_dist_plot"), 
+        #actionButton("pt_gene_chracc_gene_dist_plot_download", "Download plot")
+      )
+    }
   })
   
   # Render UI for expression along pt plots
@@ -3559,16 +3580,28 @@ server <- function(input, output, session) {
                   options = list(container = "body", 
                                  html = TRUE)),
         wellPanel(
-          # Select distance limit for mapping bins to nearest genes
-          sliderInput("pt_gene_expr_gene_maxdist",
-                      "Maximum distance limit of bins to nearest gene TSS",
-                      min = 0,
-                      max = 1e6,
-                      value = 500,
-                      post = "bp",
-                      step = 100),
-          plotlyOutput("pt_gene_expr_gene_dist_plot"), 
-          #actionButton("pt_gene_expr_gene_dist_plot_download", "Download plot")
+          fluidRow(
+            column(
+              width = 8,
+              # Select distance limit for mapping bins to nearest genes
+              sliderInput("pt_gene_expr_gene_maxdist",
+                          "Maximum distance limit of bins to nearest gene TSS",
+                          min = 0,
+                          max = 1e6,
+                          value = 500,
+                          post = "bp",
+                          step = 100)
+            ), 
+            column(
+              width = 4, 
+              checkboxInput(
+                "pt_show_gene_expr_gene_dist_plot", 
+                "Show distribution of cluster bins distance to genes", 
+                value = FALSE
+              )
+            )
+          ),
+          uiOutput("pt_gene_expr_gene_dist_plot_ui")
         ),
         selectInput(
           'pt_gene_expr_choose_plot', 
@@ -4577,33 +4610,7 @@ server <- function(input, output, session) {
           label = "Show expression along pseudotime for cluster: ", 
           choices = as.character(1:input$pt_n_gbin_clust)
         ), 
-        wellPanel(
-          fluidRow(
-            column(
-              width = 8,
-              sliderInput(
-                "pt_gene_maxdist", 
-                "Maximum distance limit of bins to nearest gene TSS",
-                min = 0, 
-                max = 1e6, 
-                value = 500, 
-                post = "bp",
-                step = 100, 
-                width = "100%"
-              )
-            ), 
-            column(
-              width = 4, 
-              checkboxInput(
-                "pt_show_gene_dist_plot", 
-                "Show distribution of cluster bins distance to genes", 
-                value = FALSE
-              )
-            )
-          ),
-          uiOutput("pt_gbin_clu_ngene_msg"),
-          uiOutput("pt_gbin_clust_expr_gene_dist_plot_ui")
-        ),
+        uiOutput("pt_gbin_clust_expr_gene_dist_ui"),
         h4("Genomic bin clusters expression plot"),
         uiOutput("pt_gbin_clust_no_ensembl_msg"), 
         plotOutput('pt_gbin_clust_expr_plot'), 
@@ -4615,33 +4622,7 @@ server <- function(input, output, session) {
     } else if (input$pt_gbin_clust_expr_choose_plot == "Heatmap") {
       if (input$pt_n_gbin_clust > 1) {
         tagList(
-          wellPanel(
-            fluidRow(
-              column(
-                width = 8,
-                sliderInput(
-                  "pt_gene_maxdist", 
-                  "Maximum distance limit of bins to nearest gene TSS",
-                  min = 0, 
-                  max = 1e6, 
-                  value = 500, 
-                  post = "bp",
-                  step = 100, 
-                  width = "100%"
-                )
-              ), 
-              column(
-                width = 4, 
-                checkboxInput(
-                  "pt_show_gene_dist_plot", 
-                  "Show distribution of cluster bins distance to genes", 
-                  value = FALSE
-                )
-              )
-            ),
-            uiOutput("pt_gbin_clu_ngene_msg"),
-            uiOutput("pt_gbin_clust_expr_gene_dist_plot_ui")
-          ),
+          uiOutput("pt_gbin_clust_expr_gene_dist_ui"),
           h4("Genomic bin clusters average expression heat map"),
           actionButton('show_interactive_pt_gbin_clust_expr_heatmap', 
                        "Show interactive heatmap"), 
@@ -4656,6 +4637,36 @@ server <- function(input, output, session) {
         p("Heat map cannot be generated for single row input. Please use a larger number of genomic bin clusters for heat map visualization. ")
       }
     }
+  })
+  
+  output$pt_gbin_clust_expr_gene_dist_ui <- renderUI({
+    wellPanel(
+      fluidRow(
+        column(
+          width = 8,
+          sliderInput(
+            "pt_gene_maxdist", 
+            "Maximum distance limit of bins to nearest gene TSS",
+            min = 0, 
+            max = 1e6, 
+            value = 500, 
+            post = "bp",
+            step = 100, 
+            width = "100%"
+          )
+        ), 
+        column(
+          width = 4, 
+          checkboxInput(
+            "pt_show_gene_dist_plot", 
+            "Show distribution of cluster bins distance to genes", 
+            value = FALSE
+          )
+        )
+      ),
+      uiOutput("pt_gbin_clu_ngene_msg"),
+      uiOutput("pt_gbin_clust_expr_gene_dist_plot_ui")
+    )
   })
   
   output$pt_gbin_clust_expr_gene_dist_plot_ui <- renderUI({
@@ -5179,6 +5190,15 @@ server <- function(input, output, session) {
     download_plotly(pt_gene_chracc_gene_dist_plot())
   })
   
+  output$pt_gene_expr_gene_dist_plot_ui <- renderUI({
+    if (input$pt_show_gene_expr_gene_dist_plot) {
+      tagList(
+        plotlyOutput("pt_gene_expr_gene_dist_plot"), 
+        #actionButton("pt_gene_expr_gene_dist_plot_download", "Download plot")
+      )
+    }
+  })
+  
   pt_gene_expr_gene_dist_plot <- reactive({
     gbin_names <- rownames(pca_top_var_pred_mat())
     sel_gbin_gene <- gbin_tss[gbin_names, ]
@@ -5604,16 +5624,40 @@ server <- function(input, output, session) {
       )
     } else if (input$pt_diff_show_panel == "Gene average accessibility") {
       tagList(
-        sliderInput("pt_diff_gene_maxdist", 
-                    "Maximum distance limit of bins to nearest gene TSS",
-                    min = 0, 
-                    max = 1e6, 
-                    value = 500, 
-                    post = "bp",
-                    step = 100), 
+        wellPanel(
+          fluidRow(
+            column(
+              width = 8,
+              # Select distance limit for mapping bins to nearest genes
+              sliderInput("pt_diff_gene_maxdist",
+                          "Maximum distance limit of bins to nearest gene TSS",
+                          min = 0,
+                          max = 1e6,
+                          value = 500,
+                          post = "bp",
+                          step = 100)
+            ), 
+            column(
+              width = 4, 
+              checkboxInput(
+                "pt_diff_show_gene_dist_plot", 
+                "Show distribution of cluster bins distance to genes", 
+                value = FALSE
+              )
+            )
+          ), 
+          uiOutput("pt_diff_ngene_msg"), 
+          uiOutput("pt_diff_gene_dist_plot_ui")
+        )
+      )
+    }
+  })
+  
+  output$pt_diff_gene_dist_plot_ui <- renderUI({
+    if (input$pt_diff_show_gene_dist_plot) {
+      tagList(
         plotlyOutput("pt_diff_gene_dist_plot"), 
-        #actionButton("pt_diff_gene_dist_plot_download", "Download plot"),
-        uiOutput("pt_diff_ngene_msg")
+        #actionButton("pt_diff_gene_dist_plot_download", "Download plot")
       )
     }
   })
@@ -6095,18 +6139,40 @@ server <- function(input, output, session) {
       isolate({
         if(input$pt_diff_show_panel != "Gene average accessibility") {
           tagList(
-            sliderInput("pt_diff_go_gene_maxdist", 
-                        "Maximum distance limit of bins to nearest gene TSS",
-                        min = 0, 
-                        max = 1e6, 
-                        value = 500, 
-                        post = "bp",
-                        step = 100), 
-            plotlyOutput("pt_diff_go_gene_dist_plot"), 
-            #actionButton("pt_diff_go_gene_dist_plot_download", "Download plot")
+            fluidRow(
+              column(
+                width = 8,
+                # Select distance limit for mapping bins to nearest genes
+                sliderInput("pt_diff_go_gene_maxdist", 
+                            "Maximum distance limit of bins to nearest gene TSS",
+                            min = 0, 
+                            max = 1e6, 
+                            value = 500, 
+                            post = "bp",
+                            step = 100),
+              ), 
+              column(
+                width = 4, 
+                checkboxInput(
+                  "pt_diff_go_show_gene_dist_plot", 
+                  "Show distribution of cluster bins distance to genes", 
+                  value = FALSE
+                )
+              )
+            ),
+            uiOutput("pt_diff_go_gene_dist_plot_ui")
           )
         }
       })
+    }
+  })
+  
+  output$pt_diff_go_gene_dist_plot_ui <- renderUI({
+    if (input$pt_diff_go_show_gene_dist_plot) {
+      tagList(
+        plotlyOutput("pt_diff_go_gene_dist_plot"), 
+        #actionButton("pt_diff_go_gene_dist_plot_download", "Download plot")
+      )
     }
   })
   
@@ -8164,6 +8230,11 @@ server <- function(input, output, session) {
   # Sample groups - named vector similar to clustering vector
   diff_sample_groups <- reactiveVal()
   
+  # Reset sample groups when selected samples change
+  observeEvent(selected_samples(), {
+    diff_sample_groups(NULL)
+  })
+  
   # Reactive value containing selected groups from plot
   diff_plotsel_groups <- reactiveVal(list())
   
@@ -9845,17 +9916,39 @@ server <- function(input, output, session) {
     if ((!is.null(diff_test_res())) && (input$run_diff_test > 0)) {
       isolate({
         tagList(
-          sliderInput("diff_go_gene_maxdist", 
-                      "Maximum distance limit of bins to nearest gene TSS",
-                      min = 0, 
-                      max = 1e6, 
-                      value = 500, 
-                      post = "bp",
-                      step = 100), 
-          plotlyOutput("diff_go_gene_dist_plot"), 
-          #actionButton("diff_go_gene_dist_plot_download", "Download plot")
+          fluidRow(
+            column(
+              width = 8,
+              # Select distance limit for mapping bins to nearest genes
+              sliderInput("diff_go_gene_maxdist", 
+                          "Maximum distance limit of bins to nearest gene TSS",
+                          min = 0, 
+                          max = 1e6, 
+                          value = 500, 
+                          post = "bp",
+                          step = 100), 
+            ), 
+            column(
+              width = 4, 
+              checkboxInput(
+                "diff_go_show_gene_dist_plot", 
+                "Show distribution of cluster bins distance to genes", 
+                value = FALSE
+              )
+            )
+          ),
+          uiOutput("diff_go_gene_dist_plot_ui")
         )
       })
+    }
+  })
+  
+  output$diff_go_gene_dist_plot_ui <- renderUI({
+    if (input$diff_go_show_gene_dist_plot) {
+      tagList(
+        plotlyOutput("diff_go_gene_dist_plot"), 
+        #actionButton("diff_go_gene_dist_plot_download", "Download plot")
+      )
     }
   })
   
