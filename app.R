@@ -5206,23 +5206,27 @@ server <- function(input, output, session) {
   })
   
   pca_top_var_nearest_genes <- reactive({
+    req(input$pt_show_panel)
     gbin_names <- rownames(pca_top_var_pred_mat())
     sel_gbin_gene <- gbin_tss[gbin_names, ]
-    req(input$pt_show_panel)
-    if ((input$pt_show_panel == "Nearest gene expression along pseudotime") &&
-        (! is.null(input$pt_expr_dat_type)) && (input$pt_expr_dat_type == "Gene average")) {
-      maxdist <- input$pt_gene_expr_gene_maxdist
-    } else if ((input$pt_show_panel == "Accessibility along pseudotime") &&
-               (! is.null(input$pt_chracc_dat_type)) && (input$pt_chracc_dat_type == "Gene average")) {
-      maxdist <- input$pt_gene_chracc_gene_maxdist
-    } else {return(data.frame(genes=c()))}
-    nearest_genes <- unique(sel_gbin_gene[sel_gbin_gene$distance <= maxdist, ]$gene)
-    if ((input$pt_show_panel == "Nearest gene expression along pseudotime") & input$pt_expr_dat_type == "Gene average") {
-      # ensembl_annots <- annots[annots$SYMBOL %in% nearest_genes, ]
-      # ensembl_annots <- ensembl_annots[ensembl_annots$ENSEMBL %in% rownames(scaled_expr_pt_mat()), ]
-      # nearest_genes <- ensembl_annots$SYMBOL
-      nearest_genes <- nearest_genes[nearest_genes %in% annots$SYMBOL]
+    maxdist <- NULL
+    if (input$pt_show_panel == "Nearest gene expression along pseudotime") {
+      req(input$pt_expr_dat_type)
+      req(input$pt_gene_expr_gene_maxdist)
+      if (input$pt_expr_dat_type == "Gene average") {
+        maxdist <- input$pt_gene_expr_gene_maxdist
+        nearest_genes <- unique(sel_gbin_gene[sel_gbin_gene$distance <= maxdist, ]$gene)
+        nearest_genes <- nearest_genes[nearest_genes %in% annots$SYMBOL]
+      }
+    } else if (input$pt_show_panel == "Accessibility along pseudotime") {
+      req(input$pt_chracc_dat_type)
+      req(input$pt_gene_chracc_gene_maxdist)
+      if (input$pt_chracc_dat_type == "Gene average") {
+        maxdist <- input$pt_gene_chracc_gene_maxdist
+        nearest_genes <- unique(sel_gbin_gene[sel_gbin_gene$distance <= maxdist, ]$gene)
+      }
     }
+    if (is.null(maxdist)) {return(data.frame(genes=c()))}
     data.frame(genes = nearest_genes[! is.na(nearest_genes)])
   })
   
