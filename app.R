@@ -324,30 +324,6 @@ ui <- fluidPage(
         ),
         
         uiOutput("download_zip_txt_ui")
-      ), 
-      
-      # Tab panel for bigwig prediction download/link
-      tabPanel(
-        title = "BigWig download", 
-        
-        div(style = "display: inline-block;vertical-align: middle;", h2("BigWig Download")), 
-        
-        uiOutput("download_bw_ui"), 
-        
-        br(), 
-        
-        div(style = "display: inline-block;vertical-align: middle;", h2("Display in UCSC Genome Browser Track Hub")), 
-        
-        uiOutput("ucsc_hub_ui")
-      ), 
-      
-      # Tab panel for rds prediction download
-      tabPanel(
-        title = "rds download", 
-        
-        div(style = "display: inline-block;vertical-align: middle;", h2("rds Download")), 
-        
-        uiOutput("download_rds_ui")
       )
     ), 
     
@@ -1407,8 +1383,35 @@ server <- function(input, output, session) {
           options = list(container = "body", 
                          html = TRUE)
         ),
+        fluidRow(
+          column(
+            3, 
+            actionButton(
+              "proj_table_sel_none", 
+              "Deselect all", 
+              width = "100%"
+            )
+          ), 
+          column(
+            3, 
+            checkboxInput(
+              "proj_table_show_title", 
+              "Show study titles",
+              value = TRUE
+            )
+          ),
+          column(
+            3, 
+            checkboxInput(
+              "proj_table_show_abstract", 
+              "Show study abstracts",
+              value = FALSE
+            )
+          )
+        ),
         # Display table with project info
-        DT::dataTableOutput('proj_table')
+        DT::dataTableOutput('proj_table'), 
+        uiOutput("rds_download_ui")
       )
     } else if (input$proj_sel_method == "Select with text input") {
       tagList(
@@ -1441,6 +1444,17 @@ server <- function(input, output, session) {
           label = "Confirm project selection"
         ),
         textOutput("proj_sel_submission_text")
+      )
+    }
+  })
+  
+  output$rds_download_ui <- renderUI({
+    req(input$proj_table_rows_selected)
+    if (length(input$proj_table_rows_selected) > 0) {
+      downloadButton(
+        "rds_download", 
+        "Download RDS file(s)", 
+        width = "100%"
       )
     }
   })
@@ -1518,16 +1532,54 @@ server <- function(input, output, session) {
   # Reactive value containing selected projects index
   proj_table_rows_selected <- reactiveVal()
   
-  # Render project table
-  output$proj_table <- DT::renderDataTable({
+  proj_table <- reactive({
     df <- proj_df
     if (!is.null(input$proj_table_show_large_studies) && (! input$proj_table_show_large_studies)) {
       df <- proj_df[proj_df$n_samples <= 600, ]
+    }
+    df
+  })
+  
+  # Render project table
+  output$proj_table <- DT::renderDataTable({
+    df <- proj_table()
+    rm <- c()
+    if (! input$proj_table_show_title) {
+      rm <- c(rm, which(colnames(proj_table()) == "study_title"))
+    }
+    if (! input$proj_table_show_abstract) {
+      rm <- c(rm, which(colnames(proj_table()) == "study_abstract"))
+    }
+    if (length(rm) > 0) {
+      df <- df[, - rm, drop=F]
     }
     DT::datatable(df,
                   rownames = FALSE,
                   filter = list(position = 'top', clear = FALSE))
   })
+  
+  proj_table_proxy <- dataTableProxy("proj_table")
+  
+  # Deselect all of project table
+  observeEvent(input$proj_table_sel_none, {
+    proj_table_proxy %>% selectRows(NULL)
+  })
+  
+  # # Download study rds
+  # observeEvent(proj_table(), {
+  #   batches <- studies_batch$batch[match(proj_table()$project, studies_batch$study)]
+  #   lapply(1:nrow(proj_table()), function(i) {
+  #     proj <- proj_table()$project[i]
+  #     batch <- batches[i]
+  #     output[[paste0("download_rds_", proj)]] <- downloadHandler(
+  #       filename = paste0(proj, ".rds"), 
+  #       content = function(file) {
+  #         download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+  #                              batch, "/", proj, ".rds"), file)
+  #       }
+  #     )
+  #   })
+  # })
   
   # Update project selection text area input value based on uploaded file
   observeEvent(input$proj_sel_txt_file, {
@@ -1619,7 +1671,9 @@ server <- function(input, output, session) {
           "submit_sample_sel_table", 
           label = "Confirm sample selection"
         ), 
-        textOutput("sample_sel_table_submission_msg")
+        textOutput("sample_sel_table_submission_msg"),
+        br(), 
+        uiOutput("bw_download_ui")
       )
     } else if (input$sample_sel_method == "Select with text input") {
       tagList(
@@ -1653,6 +1707,39 @@ server <- function(input, output, session) {
           label = "Confirm sample selection"
         ),
         textOutput("sample_sel_text_submission_msg")
+      )
+    }
+  })
+  
+  # Bigwig and UCSC genome browser session file download buttons
+  output$bw_download_ui <- renderUI({
+    if (length(input$sample_table_rows_selected) > 0) {
+      fluidRow(
+        column(
+          3, 
+          downloadButton("bw_download", "Download BigWig file(s)")
+        ), 
+        column(
+          3,
+          div(style = "display: inline-block;vertical-align: middle;", 
+              downloadButton("ucsc_session_download", "Download session file(s)")), 
+          div(style = "display: inline-block;vertical-align: middle;", 
+              bsButton("ucsc_session_info", 
+                       label = "", 
+                       icon = icon("info"), 
+                       style = "info", 
+                       size = "extra-small")), 
+          bsPopover(
+            id = "ucsc_session_info",
+            title = "<h4>Sample selection table</h4>",
+            content = do.call(paste0, 
+                              popover_contents$sample_sel_table_info),
+            placement = "right",
+            trigger = "focus",
+            options = list(container = "body", 
+                           html = TRUE)
+          )
+        )
       )
     }
   })
@@ -2507,95 +2594,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # UI for download buttons
-  output$download_bw_ui <- renderUI({
-    if (nrow(selected_samples()) == 0) {
-      textOutput("download_msg_bw")
-    } else {
-      tagList(
-        textOutput("download_msg_bw"),
-        p("The entire BIRD prediction (with all genomic bins) is written to BigWig output."),
-        downloadButton("bw_download", "Download BigWig file")
-      )
-    }
-  })
-  
-  # UI for UCSC hub session files download
-  output$ucsc_hub_ui <- renderUI({
-    if (nrow(selected_samples()) == 0) {
-      textOutput("download_msg_bw")
-    } else {
-      tagList(
-        p("To show the tracks of selected predictions on our UCSC Genome Browser Hub, 
-          you need to upload a session file to UCSC genome browser. "),
-        p("Go to ", tags$a(href="https://genome.ucsc.edu/", "https://genome.ucsc.edu/", target="_blank"), 
-          " -> My Data -> My Sessions -> Restore Settings -> Use settings from a local file -> submit. "),
-        p("Please note that you can view all predictions on all genomic positions 
-          on UCSC Genome Browser by toggling display region and subtracks visibility."), 
-        radioButtons("ucsc_session_range_type",
-                     "Track position: ", 
-                     choices = c("First 100,000bp of selected region" = "100kb", 
-                                 "Entire selected region in one chromosome" = "1chr", 
-                                 "All selected regions" = "all")),
-        uiOutput("ucsc_session_range_ui"), 
-        downloadButton("ucsc_session_download", "Download session file")
-      )
-    }
-  })
-  
-  output$ucsc_session_range_ui <- renderUI({
-    if (input$ucsc_session_range_type == "100kb") {
-      radioButtons("ucsc_session_sel_chr", 
-                   "The first 100,000bp of selected range in the following selected 
-                   chromosome will be displayed on UCSC genome browser: ", 
-                   choices = sort(unique(as.character(seqnames(custom_gr())))), 
-                   selected = sort(unique(as.character(seqnames(custom_gr()))))[1])
-    } else if (input$ucsc_session_range_type == "1chr") {
-      radioButtons("ucsc_session_sel_chr", 
-                   "The entire selected selected range in the following selected 
-                   chromosome will be displayed on UCSC genome browser: ", 
-                   choices = sort(unique(as.character(seqnames(custom_gr())))), 
-                   selected = sort(unique(as.character(seqnames(custom_gr()))))[1])
-    } else if (input$ucsc_session_range_type == "all") {
-      sel_reg <- c("#database hg38", "#shortDesc Selected range of BIRD prediction", "#padding 6")
-      sel_chr <- unique(seqnames(custom_gr()))
-      region_start <- sapply(sel_chr, function(chr) {
-        min(start(custom_gr()[seqnames(custom_gr()) == chr]))
-      })
-      region_end <- sapply(sel_chr, function(chr) {
-        max(end(custom_gr()[seqnames(custom_gr()) == chr]))
-      })
-      sel_reg <- c(sel_reg, capture.output(write.table(data.frame(sel_chr, region_start, region_end), 
-                                                       row.names = F, col.names = F, quote = F)))
-      tagList(
-        p("After loading the session file on UCSC Genome Browser, please click on 
-        multi-region -> Enter custom regions as BED -> paste the following BED 
-        file into the text area -> Submit to configure multi-region view. "), 
-        rclipButton(
-          inputId = "ucsc_session_multi_region_bed_copy", 
-          label = "Copy BED3 of all selected regions", 
-          clipText = paste(sel_reg, collapse = "\n"), 
-          icon = icon("clipboard"), 
-          style = "border: 1px solid white;"
-        )
-      )
-    }
-  })
-  
-  # UI for rds download
-  output$download_rds_ui <- renderUI({
-    if (sum(selected_samples()$read_from == "database") == 0) {
-      p("No sample selected. Please select input samples from Input Selection Tab. ")
-    } else {
-      studies <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
-      tagList(
-        p(paste("The samples you selected come from the following studies:", 
-                paste(studies, collapse = ", "))), 
-        downloadButton("rds_download", "Download rds file(s)")
-      )
-    }
-  })
-  
   # Txt download
   output$txt_download <- downloadHandler(
     filename = "BIRD_prediction.txt", 
@@ -2640,9 +2638,9 @@ server <- function(input, output, session) {
       tmp <- tempfile(pattern = "bigwig", tmpdir = tmp_dir)
       dir.create(tmp)
       tmp_fpaths <- c()
-      for (i in 1:nrow(selected_samples())) {
-        study <- as.character(selected_samples()$project[i])
-        sample <- selected_samples()$sample[i]
+      for (i in input$sample_table_rows_selected) {
+        study <- as.character(samples_df()$project[i])
+        sample <- samples_df()$sample[i]
         batch <- studies_batch$batch[studies_batch$study == study]
         fname <- paste0(sample, ".bw")
         download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/bigwig/b", batch, "/", sample, ".bw"), 
@@ -2654,29 +2652,15 @@ server <- function(input, output, session) {
     }
   )
   
+  ucsc_session_show_modal <- reactiveVal()
+  
   # UCSC session file download
   output$ucsc_session_download <- downloadHandler(
     filename = "BIRD_hub_session.txt",
     content = function(file) {
-      if (input$ucsc_session_range_type != "all") {
-        # Display only 1 chromosome region
-        chr <- input$ucsc_session_sel_chr
-        if (is.null(chr)) {
-          chr <- sort(unique(as.character(seqnames(custom_gr()))))[1]
-        }
-        if (input$ucsc_session_range_type == "100kb") {
-          region_start <- min(start(custom_gr()[seqnames(custom_gr()) == chr]))
-          region_end <- region_start + 100000 - 1
-        } else if (input$ucsc_session_range_type == "1chr") {
-          region_start <- min(start(custom_gr()[seqnames(custom_gr()) == chr]))
-          region_end <- max(end(custom_gr()[seqnames(custom_gr()) == chr]))
-        }
-      } else {
-        # Display all selected regions -> only display first 10kb region in session file
-        chr <- sort(unique(seqnames(custom_gr())))[1]
-        region_start <- min(start(custom_gr()[seqnames(custom_gr()) == chr]))
-        region_end <- region_start + 10000 - 1
-      }
+      chr <- "chr1"
+      region_start <- start(bird_ranges[1])
+      region_end <- region_start + 100000 - 1
       hub_id <- "4835692"
       args <- c("c", "clade", "db", "dinkL", "dinkR", "dirty", "g", 
                 paste0("hgHubConnect.hub.", hub_id), 
@@ -2706,51 +2690,63 @@ server <- function(input, output, session) {
                 paste0(chr, ":", region_start, "-", region_end), 
                 hub_id)
       track_ids <- gsub("\\.", "_", make.names(all_samples_df$sample_id))
-      sel_tracks <- paste0("hub_", hub_id, "_", track_ids, "_sel ", as.integer(all_samples_df$sample_id %in% selected_samples()$sample))
+      sel_tracks <- paste0("hub_", hub_id, "_", track_ids, "_sel ", as.integer(all_samples_df$sample_id %in% samples_df()$sample[input$sample_table_rows_selected]))
       writeLines(c(paste(args, vals), sel_tracks), file)
+      ucsc_session_show_modal(TRUE)
     }
   )
+  
+  observeEvent(ucsc_session_show_modal(), {
+    showModal(
+      modalDialog(
+        HTML("<p>To show the tracks of selected predictions on our UCSC Genome Browser Hub, 
+             you need to upload a session file to <a href=\"https://genome.ucsc.edu/\" target=\"_blank\">
+             UCSC Genome browser</a>. Go to <a href=\"https://genome.ucsc.edu/\" target=\"_blank\">
+             UCSC Genome browser</a> &rarr; My Data &rarr; My Sessions &rarr; 
+             Restore Settings &rarr; Use settings from a local file &rarr; submit. </p>"), 
+        HTML("<p>Please note that you can view all predictions on all genomic positions 
+             on UCSC Genome Browser by toggling <b>display region</b> and <b>subtracks visibility</b>.</p>"),
+        easyClose = TRUE
+      )
+    )
+    ucsc_session_show_modal(NULL)
+  })
   
   # RDS file download
-  output$rds_download <- downloadHandler(
-    filename = {
-      proj <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
-      if (length(proj) == 1) {
-        paste0(proj, ".rds")
-      } else {"studies_rds.zip"}
-    }, 
-    content = function(file) {
-      proj <- unique(selected_samples()$project[selected_samples()$read_from == "database"])
-      batch <- studies_batch$batch[match(proj, studies_batch$study)]
-      if (length(proj) == 1) {
-        download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
-                             batch, "/", proj, ".rds"), file)
-      } else {
-        # Make zip file
-        # Create temp folder to hold prediction files
-        tmp <- tempfile(pattern = "rds", tmpdir = tmp_dir)
-        dir.create(tmp)
-        tmp_fpaths <- c()
-        for (i in 1:length(proj)) {
-          fname <- paste0(proj[i], ".rds")
-          proj_file <- file.path(tmp, fname)
-          download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
-                               batch[i], "/", proj[i], ".rds"), proj_file)
-          tmp_fpaths <- append(tmp_fpaths, proj_file)
+  observeEvent(input$proj_table_rows_selected, {
+    output$rds_download <- downloadHandler(
+      filename = {
+        proj <- proj_table()$project[input$proj_table_rows_selected]
+        if (length(proj) == 1) {
+          paste0(proj, ".rds")
+        } else {
+          "studies_rds.zip"
         }
-        zip(zipfile = file, files = tmp_fpaths, extras = '-j')
-        unlink(tmp, recursive = TRUE)
+      }, 
+      content = function(file) {
+        proj <- proj_table()$project[input$proj_table_rows_selected]
+        batch <- studies_batch$batch[match(proj, studies_batch$study)]
+        if (length(proj) == 1) {
+          download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+                               batch, "/", proj, ".rds"), file)
+        } else {
+          # Make zip file
+          # Create temp folder to hold prediction files
+          tmp <- tempfile(pattern = "rds", tmpdir = tmp_dir)
+          dir.create(tmp)
+          tmp_fpaths <- c()
+          for (i in 1:length(proj)) {
+            fname <- paste0(proj[i], ".rds")
+            proj_file <- file.path(tmp, fname)
+            download.file(paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
+                                 batch[i], "/", proj[i], ".rds"), proj_file)
+            tmp_fpaths <- append(tmp_fpaths, proj_file)
+          }
+          zip(zipfile = file, files = tmp_fpaths, extras = '-j')
+          unlink(tmp, recursive = TRUE)
+        }
       }
-    }
-  )
-  
-  db_download_msg <- reactive({
-    if (sum(selected_samples()$read_from == "database")) {
-      paste0("Download selected genomic ranges of predictions for samples: ", 
-             paste(selected_samples()$sample, collapse = ", ")) 
-    } else {
-      paste("No sample selected from database. Please select input samples from Input Selection Tab with \"Select from prediction database\" option. ")
-    }
+    )
   })
   
   output$download_msg_zip_txt <- renderText({ 
@@ -2759,15 +2755,6 @@ server <- function(input, output, session) {
              paste(selected_samples()$sample[selected_samples()$read_from == "database"], collapse = ", ")) 
     } else {
       paste("No sample selected from database. Please select more input samples from Input Selection Tab with \"Select from prediction database\" option. ")
-    }
-  })
-  
-  output$download_msg_bw <- renderText({
-    if (nrow(selected_samples()) > 0) {
-      paste0("Download full predictions for samples: ", 
-             paste(selected_samples()$sample, collapse = ", ")) 
-    } else {
-      paste("No sample selected from database. Please select samples from Input Selection Tab. ")
     }
   })
   
@@ -4874,7 +4861,6 @@ server <- function(input, output, session) {
         return(NULL)
       }
       gene <- as.character(top_var_gbin_table()$nearest_gene[input$top_var_gbin_table_rows_selected])
-      print(gene)
       ensembl <- annots[annots$SYMBOL %in% gene, "ENSEMBL"]
       gbin_expr <- colMeans(scaled_expr_pt_mat()[ensembl, , drop=F])
       names(gbin_expr) <- colnames(scaled_expr_pt_mat())
