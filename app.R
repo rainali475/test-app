@@ -122,6 +122,9 @@ annots <- readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/an
 gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_traits.rds'))
 scaled_gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/scaled_gtex_traits.rds'))
 
+# Read TCGA barcodes
+tcga_barcode <- readRDS("../app files/tcga_barcode.rds")
+
 # Max number of clusters for genomic bin clustering used in pseudo time accessibility
 max_n_gbin <- 20
 
@@ -1393,7 +1396,7 @@ server <- function(input, output, session) {
             )
           ), 
           column(
-            3, 
+            2, 
             checkboxInput(
               "proj_table_show_title", 
               "Show study titles",
@@ -1401,11 +1404,19 @@ server <- function(input, output, session) {
             )
           ),
           column(
-            3, 
+            2, 
             checkboxInput(
               "proj_table_show_abstract", 
               "Show study abstracts",
               value = FALSE
+            )
+          ), 
+          column(
+            2, 
+            checkboxInput(
+              "proj_table_show_link", 
+              "Show study link", 
+              value = TRUE
             )
           )
         ),
@@ -1543,6 +1554,14 @@ server <- function(input, output, session) {
   # Render project table
   output$proj_table <- DT::renderDataTable({
     df <- proj_table()
+    if (input$proj_table_show_link) {
+      df$link <- paste0("<a href=\"https://trace.ncbi.nlm.nih.gov/Traces/?view=study&acc=", 
+                        df$project, "\" target=\"_blank\">", df$project, "</a>")
+      df$link[df$file_source == "tcga"] <- paste0("<a href=\"https://portal.gdc.cancer.gov/projects/TCGA-", df$project[df$file_source == "tcga"], 
+                                                  "\" target=\"_blank\">", df$project[df$file_source == "tcga"], 
+                                                  "</a> (Select TCGA program within GDC Cohort Builder)")
+      df$link[df$file_source == "gtex"] <- paste0("<a href=\"https://gtexportal.org/home/tissue/\" target=\"_blank\">GTEx tissues</a>")
+    }
     rm <- c()
     if (! input$proj_table_show_title) {
       rm <- c(rm, which(colnames(proj_table()) == "study_title"))
@@ -1555,6 +1574,7 @@ server <- function(input, output, session) {
     }
     DT::datatable(df,
                   rownames = FALSE,
+                  escape = FALSE, 
                   filter = list(position = 'top', clear = FALSE))
   })
   
@@ -1750,11 +1770,7 @@ server <- function(input, output, session) {
   
   # Define samples data.frame based on user selection
   samples_df <- reactive({
-    df <- proj_df
-    if (!is.null(input$proj_table_show_large_studies) && (! input$proj_table_show_large_studies)) {
-      df <- proj_df[proj_df$n_samples <= 600, ]
-    }
-    selected_proj <- df$project[proj_table_rows_selected()]
+    selected_proj <- proj_table()$project[proj_table_rows_selected()]
     df <- all_samples_df[all_samples_df$project_id %in% selected_proj, ]
     df$project_id <- as.factor(df$project_id)
     df
@@ -1764,7 +1780,14 @@ server <- function(input, output, session) {
   output$sample_table <- DT::renderDataTable({
     req(samples_df())
     req(nrow(samples_df()) > 0)
-    df <- data.frame(samples_df(), selected="")
+    df <- samples_df()
+    df$link <- paste0("<a href=\"https://www.ncbi.nlm.nih.gov/sra/?term=", 
+                      df$sample_id, "\" target=\"_blank\">", df$sample_id, "</a>")
+    file_source <- merge(df, proj_table()[, c("project", "file_source")], by.x = "project_id", by.y = "project")
+    df$link[file_source$file_source == "gtex"] <- "<a href=\"https://gtexportal.org/home/histologyPage\" target=\"_blank\">GTEx Histology Viewer</a>"
+    df$link[file_source$file_source == "tcga"] <- paste0("<a href=\"https://portal.gdc.cancer.gov/\" target=\"_blank\">GDC Data Portal</a> (Search for ", 
+                                                         tcga_barcode[df$sample_id[file_source$file_source == "tcga"]], ")")
+    df$selected <- ""
     df$selected[df$sample_id %in% selected_samples()$sample] <- as.character(icon("check"))
     df$selected <- as.factor(df$selected)
     DT::datatable(df,
