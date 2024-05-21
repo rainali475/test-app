@@ -1,0 +1,96 @@
+<style>
+
+.chart-text {
+  fill: #000;
+  transform: translateY(0.25em);
+}
+
+.chart-number {
+  font-size: 0.3em;
+  color:#159d79;
+  line-height: 1;
+  text-anchor: middle;
+  transform: translateY(-0.25em);
+}
+
+.chart-label {
+  font-size: 0.1em;
+  text-transform: uppercase;
+  text-anchor: middle;
+  transform: translateY(0.7em);
+}
+
+.type-segment:hover {
+  stroke-width: 5;
+}
+
+.type-segment {
+  transition: all 0.1s;
+}
+
+.source-segment:hover {
+  stroke-width: 2;
+}
+
+.source-segment {
+  transition: all 0.1s;
+}
+
+</style>
+
+
+  <div class="figure-content">
+    <svg width="100%" height="100%" viewBox="0 0 42 42" class="donut" aria-labelledby="stats-title stats-desc" role="img">
+      <title id="stats-title">ChromBIRD Database Statistics</title>
+      <desc id="stats-desc">Donut chart showing ChromBIRD datasets composition.</desc>
+
+      <circle class="donut-ring" cx="21" cy="21" r="19.098593171" fill="transparent" stroke="#d2d3d4" stroke-width="1" role="presentation"></circle>
+
+      <circle class="donut-segment source-segment" cx="21" cy="21" r="19.098593171" fill="transparent" stroke="#ffd7c8" stroke-width="1" stroke-dasharray="109 11" stroke-dashoffset="57.84" aria-labelledby="source-segment-1-title source-segment-1-desc">
+        <title id="source-segment-1-title">SRA Samples</title>
+        <desc id="source-segment-1-desc">SRA samples.</desc>
+      </circle>
+      <circle class="donut-segment source-segment" cx="21" cy="21" r="19.098593171" fill="transparent" stroke="#ff6933" stroke-width="1" stroke-dasharray="4 116" stroke-dashoffset="61.84" aria-labelledby="source-segment-3-title source-segment-3-desc">
+        <title id="source-segment-3-title">TCGA Samples</title>
+        <desc id="source-segment-3-desc">TCGA samples.</desc>
+      </circle>
+      <circle class="donut-segment source-segment" cx="21" cy="21" r="19.098593171" fill="transparent" stroke="#ffa280" stroke-width="1" stroke-dasharray="7 113" stroke-dashoffset="68.84" aria-labelledby="source-segment-2-title source-segment-2-desc">
+        <title id="source-segment-2-title">GTEx Samples</title>
+        <desc id="source-segment-2-desc">GTEx samples.</desc>
+      </circle>
+
+      <circle class="donut-hole" cx="21" cy="21" r="19.098593171" fill="transparent" role="presentation"></circle>
+      
+      <circle class="donut-ring" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#d2d3d4" stroke-width="3" role="presentation"></circle>
+
+      <circle class="donut-segment type-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#e95420" stroke-width="3" stroke-dasharray="23.2 76.8" stroke-dashoffset="48.2" aria-labelledby="type-segment-1-title type-segment-1-desc">
+        <title id="type-segment-1-title">Single-cell Studies</title>
+        <desc id="type-segment-1-desc">Single-cell studies.</desc>
+      </circle>
+      <circle class="donut-segment type-segment" cx="21" cy="21" r="15.91549430918954" fill="transparent" stroke="#20e9b2" stroke-width="3" stroke-dasharray="76.8 23.2" stroke-dashoffset="25" aria-labelledby="type-segment-2-title type-segment-2-desc">
+        <title id="type-segment-2-title">Bulk Studies</title>
+        <desc id="type-segment-2-desc">Bulk studies.</desc>
+      </circle>
+
+      <circle class="donut-hole" cx="21" cy="21" r="15.91549430918954" fill="transparent" role="presentation"></circle>
+
+      <!-- unused 10% -->
+      <g class="chart-text">
+        <text style="fill:#159d79;" x="42%" y="35%" class="chart-number">
+          345,118
+        </text>
+        <text style="fill:#0f7056" x="42%" y="35%" class="chart-label">
+          Samples
+        </text>
+
+        <text style="fill:#e95420" x="60%" y="60%" class="chart-number">
+          8,741
+        </text>
+        <text style="fill:#ba3f12" x="60%" y="60%" class="chart-label">
+          Studies
+        </text>
+      </g>
+      <path d="M 8 24 L 34 18" fill="transparent" stroke="grey" stroke-width="0.1"/>
+
+    </svg>
+  </div>

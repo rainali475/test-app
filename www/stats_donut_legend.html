@@ -1,0 +1,49 @@
+<style>
+
+.figure-key-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.figure-key-list li {
+  margin: 0 0 4px;
+  padding: 0;
+}
+
+.shape-circle {
+  transition: transform .1s;
+  display: inline-block;
+  vertical-align: middle;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.shape-circle:hover {
+  transform: scale(1.5);
+}
+
+
+</style>
+
+    <ul class="figure-key-list" aria-hidden="true" role="presentation">
+      <li>
+        <span class="shape-circle" style="background-color:#ffd7c8;"></span> SRA (314,689 samples, 8677 studies)
+      </li>
+      <li>
+        <span class="shape-circle" style="background-color:#ffa280;"></span> GTEx (19,081 samples, 31 tissues)
+      </li>
+      <li>
+        <span class="shape-circle" style="background-color:#ff6933;"></span> TCGA (11,348 samples, 33 datasets)
+      </li>
+
+    <br>
+
+      <li>
+        <span class="shape-circle" style="background-color:#20e9b2;"></span> Bulk (~270,000 samples, ~8,600 studies)
+      </li>
+      <li>
+        <span class="shape-circle" style="background-color:#e95420;"></span> Single-cell (~80,000 samples, ~100 studies)
+      </li>
+    </ul>
