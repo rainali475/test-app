@@ -123,7 +123,7 @@ gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_file
 scaled_gtex_trait <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/scaled_gtex_traits.rds'))
 
 # Read TCGA barcodes
-tcga_barcode <- readRDS("../app files/tcga_barcode.rds")
+tcga_barcode <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/tcga_barcode.rds'))
 
 # Max number of clusters for genomic bin clustering used in pseudo time accessibility
 max_n_gbin <- 20
@@ -141,6 +141,426 @@ ui <- fluidPage(
   
   navbarPage(
     title = "BIRD RNA-Seq Database", 
+    id = "chrombird_nav",
+    
+    tabPanel(
+      title = "Home", 
+      
+      tags$div(
+        style = "margin: 50px 0px;",
+        fluidRow(
+          column(
+            6, 
+            # Adapted from https://gist.github.com/markcaron/64c2d6dcc50c5e6857f187c1b6554709#file-figure-donut-chart-with-key-html
+            tags$style(
+              HTML("#stats_donut {display: flex;align-items: center;}
+              #stats_donut div {display: flex;align-items: center;height: 450px;}")
+            ),
+            tags$div(
+              id = "stats_donut", 
+              tags$div(
+                id = "stats_donut_fig", 
+                includeHTML("www/stats_donut.html")
+              ),
+              tags$div(
+                id = "stats_donut_legend", 
+                includeHTML("www/stats_donut_legend.html")
+              )
+            ), 
+          ),
+          column(
+            6, 
+            style = "height:450px;display:flex;align-items:center;",
+            tags$div(
+              tags$style("p.title {font-size: 60px;}"), 
+              HTML("<p class=\"title\"><font color=\"#159d79\"><b>ChromBIRD</b></font></p>"), 
+              HTML("<h3><font color=\"#0f7056\">A chromatin accessibility predictions database</font></h3>"),
+              hr(), 
+              tags$div(
+                style = "margin-left:50px;",
+                HTML("<h4><font color=\"grey\"><i>Access chromatin accessibility predictions paired with existing gene expression data. </i></font></h4>"), 
+                HTML("<h4><font color=\"grey\"><i>Analyze and visualize accessibility data with interactive or publication-ready images. </i></font></h4>")
+              ),
+              br(), 
+              tags$head(
+                tags$style(HTML('#show_r_instructions:hover{background-color:#d14715}
+                                #show_r_instructions{color: white; background-color: #e95420;}'))
+              ),
+              actionButton("show_r_instructions", "Run from local R session")
+            )
+          )
+        )
+      ),
+      
+      hr(), 
+      
+      # Site map
+      tags$div(
+        style = "margin-left:10%; margin-right:10%",
+        
+        HTML("<h1><font color=\"#e95420\"><b>Site Map</b></font></h1>"), 
+        tags$div(
+          style = "position:relative;width:90%;padding-top:90%;margin:5% 5%;", 
+          
+          # Footer
+          tags$div(
+            style = "position:absolute;top:40%;left:30%;width:95%;",
+            includeHTML("www/footer_background.svg"), 
+          ), 
+          tags$div(
+            style = "position:absolute;top:85%;left:95%;width:15%;",
+            # Logo
+            includeHTML("www/chrombird_logo.svg")
+          ),
+          
+          # Arrows
+          tags$div(
+            style="position:absolute;top:0;left:0;width:100%;height:100%", 
+            tags$svg(
+              viewBox="0 0 1000 1000", 
+              
+              tags$defs(
+                tags$marker(
+                  id='head',
+                  orient="auto",
+                  markerWidth='3',
+                  markerHeight='4',
+                  refX='1.1',
+                  refY='2', 
+                  tags$path(
+                    d='M1 1 V3 L2 2 Z',
+                    fill="#c7a192"
+                  )
+                )
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M350 200 v 15 q 0 25 -25 25 L 175 240 q -25 0 -25 25 v 15'
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M350 200 v 15 q 0 25 25 25 L 825 240 q 25 0 25 25 v 15'
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M350 200 v 15 q 0 25 25 25 L 475 240 q 25 0 25 25 v 15'
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M150 500 v 30'
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M150 750 v 30'
+              ), 
+              tags$path(
+                id='arrow-line',
+                style="marker-end:url(#head);stroke-width:20;fill:none;stroke:#c7a192;",
+                d='M500 500 v 30'
+              ), 
+            )
+          ), 
+          
+          tags$style(".map_label {font-size:16px;}"),
+          
+          tags$div(
+            class = "input_sel",
+            style = "position:absolute;top:0%;left:15%;width:40%;height:20%;background:#20e9b2;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:#095d47;", 
+              "Input Selection"
+            ), 
+            tags$style("#map_input_sel_samples {display: flex;align-items: center;}
+                   #map_input_sel_samples div {display: flex;align-items: center;}
+                   #map_input_sel_loci {display: flex;align-items: center;}
+                   #map_input_sel_loci div {display: flex;align-items: center;}"),
+            tags$div(
+              id = "map_input_sel_samples",
+              style = "position:absolute;top:25%;left:10%;width:40%;height:35%;",
+              tags$div(
+                style = "height:60%;width:30%;",
+                includeHTML("www/samples.svg")
+              ), 
+              tags$div(
+                tags$p(
+                  class = "map_label",
+                  style = "padding-left:10px;margin:auto;color:#10a27b;", 
+                  "Samples"
+                )
+              ), 
+            ),
+            tags$div(
+              style= "position:absolute;top:60%;left:10%;width:30%;height:0%;border:solid #10a27b 1px;",
+            ),
+            tags$div(
+              id = "map_input_sel_loci",
+              style= "position:absolute;top:60%;left:10%;width:40%;height:35%;",
+              tags$div(
+                style = "height:60%;width:30%;",
+                includeHTML("www/loci.svg")
+              ), 
+              tags$div(
+                tags$p(
+                  class = "map_label",
+                  style = "padding-left:10px;margin:auto;color:#10a27b;", 
+                  "Loci"
+                )
+              )
+            ),
+            tags$head(tags$style("#map_input_sel:hover {outline:solid #0e8b6a 10px;}
+                             #map_input_sel {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_input_sel", 
+              class = "btn action-button", 
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px"
+            )
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:2%;left:35%;width:18%;height:16%;background:#10a27b;border:none;border-radius:25px", 
+            tags$div(
+              style= "position:absolute;top:0%;left:0%;width:50%;height:100%;padding:10%;text-align:center;",
+              tags$p(
+                class = "map_label",
+                style = "color:#20e9b2;", 
+                "RDS", 
+                br(), 
+                "Text", 
+                br(), 
+                "Bigwig"
+              ), 
+              tags$div(
+                style = "position:absolute;bottom:0%;left:0%;width:100%;padding-left:10%;padding-right:10%;", 
+                includeHTML("www/download.svg")
+              )
+            ),
+            tags$div(
+              style= "position:absolute;top:10%;left:50%;width:0%;height:80%;border:solid #20e9b2 1px;"
+            ),
+            tags$div(
+              style= "position:absolute;top:0%;left:50%;width:50%;height:100%;padding:10%;",
+              tags$div(
+                style = "position:absolute;top:0%;left:0%;width:100%;padding:10%;", 
+                includeHTML("www/ucsc.svg")
+              ),
+              tags$p(
+                class = "map_label",
+                style = "position:absolute;bottom:0%;left:0%;width:100%;padding-left:10%;padding-right:10%;color:#20e9b2;text-align:center;", 
+                "UCSC Genome Browser"
+              )
+            ),
+            tags$head(tags$style("#map_download:hover {outline:solid #074635 7px;}
+                             #map_download {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_download", 
+              class = "btn action-button", 
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            )
+          ),
+          
+          tags$div(
+            style = "position:absolute;top:0%;left:60%;width:30%;height:20%;background:#ffd7c8;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:#ff6933;", 
+              "GTEx SNP Accessibility"
+            ),
+            tags$div(
+              style = "position:absolute;top:20%;width:100%", 
+              includeHTML("www/gtex_snp.svg")
+            ),
+            tags$head(tags$style("#map_gtex_snp:hover {outline:solid #ff8f66 10px;}
+                             #map_gtex_snp {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_gtex_snp", 
+              class = "btn action-button", 
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            )
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:30%;left:0%;width:30%;height:20%;background:#e95420;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "PCA and Pseudo-Temporal Analysis"
+            ),
+            tags$div(
+              style = "position:absolute;top:35%;width:100%;", 
+              includeHTML("www/pca_pt.svg")
+            ),
+            tags$head(tags$style("#map_pca_pt:hover {outline:solid #f19574 10px;}
+                             #map_pca_pt {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_pca_pt",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:55%;left:0%;width:30%;height:20%;background:#e95420;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "Differential Test Along Pseudotime"
+            ),
+            tags$div(
+              style = "position:absolute;top:35%;width:100%;", 
+              includeHTML("www/diff_pt.svg")
+            ),
+            tags$head(tags$style("#map_pt_diff:hover {outline:solid #f19574 10px;}
+                             #map_pt_diff {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_pt_diff",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:80%;left:0%;width:30%;height:20%;background:#e95420;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "GO Analysis"
+            ),
+            tags$div(
+              style = "position:absolute;top:30%;left:10%;width:80%;height:8%;background:#f6b8a2;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#ef845d;padding-right:10px;margin:auto;", 
+                "Term1"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:42%;left:10%;width:70%;height:8%;background:#f6b8a2;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#ef845d;padding-right:10px;margin:auto;", 
+                "Term2"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:54%;left:10%;width:40%;height:8%;background:#f6b8a2;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#ef845d;padding-right:10px;margin:auto;", 
+                "Term3"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:66%;left:10%;width:30%;height:8%;background:#f6b8a2;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#ef845d;padding-right:10px;margin:auto;", 
+                "Term4"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:78%;left:10%;width:20%;height:8%;background:#f6b8a2;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#ef845d;padding-right:10px;margin:auto;", 
+                "Term5"
+              )
+            ),
+            tags$head(tags$style("#map_pt_go:hover {outline:solid #f19574 10px;}
+                             #map_pt_go {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_pt_go",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:30%;left:35%;width:30%;height:20%;background:#a33e16;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "Differential Test Between Groups"
+            ),
+            tags$div(
+              style = "position:absolute;top:35%;width:100%;", 
+              includeHTML("www/diff_group.svg")
+            ),
+            tags$head(tags$style("#map_group_diff:hover {outline:solid #e36635 10px;}
+                             #map_group_diff {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_group_diff",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:55%;left:35%;width:30%;height:20%;background:#a33e16;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "GO Analysis"
+            ),
+            tags$div(
+              style = "position:absolute;top:30%;left:10%;width:80%;height:8%;background:#ea8862;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#f3bba5;padding-right:10px;margin:auto;", 
+                "Term1"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:42%;left:10%;width:70%;height:8%;background:#ea8862;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#f3bba5;padding-right:10px;margin:auto;", 
+                "Term2"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:54%;left:10%;width:40%;height:8%;background:#ea8862;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#f3bba5;padding-right:10px;margin:auto;", 
+                "Term3"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:66%;left:10%;width:30%;height:8%;background:#ea8862;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#f3bba5;padding-right:10px;margin:auto;", 
+                "Term4"
+              )
+            ),
+            tags$div(
+              style = "position:absolute;top:78%;left:10%;width:20%;height:8%;background:#ea8862;border:none;border-radius:5px", 
+              tags$p(
+                style = "text-align:right;color:#f3bba5;padding-right:10px;margin:auto;", 
+                "Term5"
+              )
+            ),
+            tags$head(tags$style("#map_group_go:hover {outline:solid #e36635 10px;}
+                             #map_group_go {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_group_go",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          ), 
+          
+          tags$div(
+            style = "position:absolute;top:30%;left:70%;width:30%;height:20%;background:#16a37d;border:none;border-radius:25px", 
+            tags$p(
+              style = "position:absolute;top:10%;left:10%;max-width:80%;font-size:20px;color:white;", 
+              "Disease SNP Analysis"
+            ),
+            tags$div(
+              style = "position:absolute;top:20%;width:100%;", 
+              includeHTML("www/disease_snp.svg")
+            ),
+            tags$head(tags$style("#map_disease_snp:hover {outline:solid #35e3b5 10px;}
+                             #map_disease_snp {transition: all 0.1s;}")),
+            tags$button(
+              id = "map_disease_snp",
+              class = "btn action-button",
+              style = "position:absolute;top:0%;left:0%;width:100%;height:100%;background:transparent;border:none;border-radius:25px",
+            ),
+          )
+        )
+      )
+      
+    ),
     
     tabPanel(
       title = "Input Selection", 
@@ -533,11 +953,47 @@ ui <- fluidPage(
           downloadButton("download_gtex_trait_table", "Download numeric table")
         )
       )
-    )
+    ), 
+    
+    navbarMenu(
+      title = "Help", 
+      
+      tabPanel(
+        title = "Tutorial", 
+        
+        tabsetPanel(
+          id = "tutorial_panels", 
+          tabPanel(
+            title = "Step-by-step tutorial", 
+            value = "guided_tut"
+          ), 
+          tabPanel(
+            title = "Video tutorial", 
+            value = "vid_tut", 
+            "Insert video demos"
+          )
+        )
+      ), 
+      
+      tabPanel(
+        title = "User Manual", 
+        
+      ), 
+      
+      tabPanel(
+        title = "About", 
+        
+      )
+    ),
   )
 )
 
 server <- function(input, output, session) {
+  
+  observeEvent(input$map_input_sel, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    #updateTabsetPanel(session, inputId = "tutorial_panels", selected = "vid_tut")
+  })
   
   # Which plot are we downloading
   download_plot <- reactiveVal(NULL)
