@@ -137,10 +137,10 @@ ui <- fluidPage(
   
   theme = shinytheme("united"),
   
-  title = "BIRD RNA-Seq Database", 
+  title = "ChromBIRD", 
   
   navbarPage(
-    title = "BIRD RNA-Seq Database", 
+    title = "ChromBIRD", 
     id = "chrombird_nav",
     
     tabPanel(
