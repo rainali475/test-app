@@ -621,6 +621,9 @@ ui <- fluidPage(
             # Show number of selected bins
             htmlOutput("n_bins_msg"), 
             
+            # Button for showing table of selected bins
+            actionButton("show_sel_bins_table", "Show selected bins in table"),
+            
             # Panel for range selection for all samples
             selectInput(
               inputId = "all_sel_method",
@@ -1933,7 +1936,7 @@ server <- function(input, output, session) {
         fluidRow(
           column(
             6, 
-            p("Reading studies with more than 600 samples exceeds shinyapps.io RAM limit, 
+            p("Reading studies with more than 200 samples exceeds shinyapps.io RAM limit, 
               so such large studies are not shown in the project selection table. 
               You will need to run this app from local R session to work with these studies. 
               Click on button on the right to see instructions for working with large studies. ")
@@ -1946,7 +1949,7 @@ server <- function(input, output, session) {
             ),
             checkboxInput(
               "proj_table_show_large_studies", 
-              "Show large studies with more than 600 samples", 
+              "Show large studies with more than 200 samples", 
               value = FALSE
             )
           )
@@ -2002,7 +2005,7 @@ server <- function(input, output, session) {
   proj_table <- reactive({
     df <- proj_df
     if (!is.null(input$proj_table_show_large_studies) && (! input$proj_table_show_large_studies)) {
-      df <- proj_df[proj_df$n_samples <= 600, ]
+      df <- proj_df[proj_df$n_samples <= 200, ]
     }
     df
   })
@@ -2305,12 +2308,12 @@ server <- function(input, output, session) {
       sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
       return(NULL)
     }
-    if ((after_add > 600) && (Sys.getenv('SHINY_PORT') != "")) {
+    if ((after_add > 200) && (Sys.getenv('SHINY_PORT') != "")) {
       # Exceeded size limit for server
       runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
       showModal(
         modalDialog(
-          HTML(paste0("<p>You tried to retrieve a set of studies with more than 600 samples in total, 
+          HTML(paste0("<p>You tried to retrieve a set of studies with more than 200 samples in total, 
               which exceeds shinyapps.io RAM limit. 
               You need to run the app from local R session to work with large studies. 
                       Run the following code in R to start app from local host: </p>")), 
@@ -2996,21 +2999,58 @@ server <- function(input, output, session) {
     data.frame(chromosome = as.factor(chromosome), start = as.integer(start), end = as.integer(end))
   }
   
+  sel_bins_i <- reactiveVal()
+  
   n_bins_selected <- reactiveVal(0)
   
   observe({
-    n_bins <- 0 
-    for (chr in levels(seqnames(custom_gr()))) {
-      hits <- findOverlaps(chr_ranges[[chr]], custom_gr())
-      n_bins <- n_bins + length(levels(as.factor(hits@from)))
-    }
-    n_bins_selected(n_bins)
+    hits <- unique(findOverlaps(bird_ranges, custom_gr())@from)
+    if ((length(hits) > 120000) && (Sys.getenv('SHINY_PORT') != "")) hits <- hits[1:120000]
+    sel_bins_i(hits)
+    n_bins_selected(length(hits))
   })
   
   # Message showing number of selected bins
   output$n_bins_msg <- renderUI({
-    HTML(paste("<p>The selected genomic positions contain", strong(n_bins_selected()), "BIRD prediction bins. </p>"))
+    msg <- paste("<p>The selected genomic positions contain", strong(n_bins_selected()), "BIRD prediction bins. </p>")
+    len_sel <- length(unique(findOverlaps(bird_ranges, custom_gr())@from))
+    if ((len_sel > 120000) && (Sys.getenv('SHINY_PORT') != "")) {
+      msg <- paste0(msg, "<p style=\"color:red;\">You selected ", len_sel, 
+                    " bins in your last attempt. As you can select up to 120,000 
+                    bins on server, only the first 120,000 bins in your selection 
+                    have been selected. Running this app from local R session allows 
+                    more bins to be selected. </p>")
+    }
+    HTML(msg)
   })
+  
+  output$sel_bins_table <- renderDataTable({
+    df <- genomic_ranges[sel_bins_i(), ]
+    df$Chromosome <- as.factor(df$Chromosome)
+    df
+  }, rownames = FALSE, 
+  filter = list(position = 'top', clear = FALSE))
+  
+  # Show selected bins table modal
+  observeEvent(input$show_sel_bins_table, {
+    showModal(
+      modalDialog(
+        title = "Selected bins table", 
+        downloadButton("sel_bins_table_download", "Download BED of selected bins"),
+        dataTableOutput("sel_bins_table"), 
+        size = "l",
+        easyClose = TRUE
+      )
+    )
+  })
+  
+  output$sel_bins_table_download <- downloadHandler(
+    filename = "BIRD_selected_bins.bed", 
+    content = function(file) {
+      write.table(genomic_ranges[sel_bins_i(), ], file = file, 
+                  row.names = F, col.names = F, sep = "\t", quote = F)
+    }
+  )
   
   # Get all predictions for selected database samples in data.frame
   get_database_pred_mat <- function(custom_range) {
@@ -3062,7 +3102,7 @@ server <- function(input, output, session) {
   output$download_zip_txt_ui <- renderUI({
     if (sum(selected_samples()$read_from == "database") == 0) {
       textOutput("download_msg_zip_txt")
-    } else if (length(custom_gr()) == 0) {
+    } else if (length(n_bins_selected()) == 0) {
       p("Please select at least 1 genomic bin. ")
     } else {
       tagList(
@@ -3078,7 +3118,7 @@ server <- function(input, output, session) {
     filename = "BIRD_prediction.txt", 
     content = function(file) {
       # Make single txt file
-      pred_mat <- get_database_pred_mat(custom_gr())
+      pred_mat <- get_database_pred_mat(bird_ranges[sel_bins_i()])
       pred_df <- cbind(parse_gbin(rownames(pred_mat)), pred_mat)
       write.table(pred_df, file, row.names = FALSE, quote = FALSE, sep = "\t")
     }
@@ -3094,7 +3134,7 @@ server <- function(input, output, session) {
       dir.create(tmp)
       tmp_fpaths <- c()
       # Write the appropriate prediction to table
-      pred_mat <- get_database_pred_mat(custom_gr())
+      pred_mat <- get_database_pred_mat(bird_ranges[sel_bins_i()])
       gbins <- parse_gbin(rownames(pred_mat))
       for (i in 1:ncol(pred_mat)) {
         sample_id <- colnames(pred_mat)[i]
@@ -3243,6 +3283,10 @@ server <- function(input, output, session) {
     } else if (n_bins_selected() < 2) {
       p("You must select at least 2 genomic bins to perform PCA. ")
     } else {
+      max_hypervar <- 10000
+      if (Sys.getenv('SHINY_PORT') != "") {
+        max_hypervar <- 3000
+      }
       tagList(
         sliderInput(
           "pca_top_var", 
@@ -3253,7 +3297,7 @@ server <- function(input, output, session) {
                                      style = "info", 
                                      size = "extra-small")), 
           min = 1000, 
-          max = 10000, 
+          max = max_hypervar, 
           value = 2000, 
           step = 100
         ),
@@ -3297,9 +3341,9 @@ server <- function(input, output, session) {
   # Predictions as numeric matrix with rows being genomic bins and columns being samples
   pred_mat <- reactive({
     req(nrow(selected_samples()) > 0)
-    database_pred_mat <- get_database_pred_mat(custom_gr())
+    database_pred_mat <- get_database_pred_mat(bird_ranges[sel_bins_i()])
     if (sum(selected_samples()$read_from == "local") > 0) {
-      local_pred_mat <- get_local_pred_mat(custom_gr())
+      local_pred_mat <- get_local_pred_mat(bird_ranges[sel_bins_i()])
       if (ncol(database_pred_mat) > 0) {
         # Have both local and database samples
         pred_mat <- cbind(database_pred_mat, local_pred_mat)
@@ -8257,6 +8301,10 @@ server <- function(input, output, session) {
     } else if (n_bins_selected() < 2) {
       p("You must select at least 2 genomic bins to display a heatmap. ")
     } else {
+      max_hypervar <- 10000
+      if (Sys.getenv('SHINY_PORT') != "") {
+        max_hypervar <- 3000
+      }
       tagList(
         sliderInput(
           "heatmap_top_var", 
@@ -8267,7 +8315,7 @@ server <- function(input, output, session) {
                                      style = "info", 
                                      size = "extra-small")), 
           min = 1000, 
-          max = 10000, 
+          max = max_hypervar, 
           value = 2000, 
           step = 100
         ),
@@ -8429,18 +8477,22 @@ server <- function(input, output, session) {
   output$diff_sample_grouping_options_ui <- renderUI({
     req(input$samples_grouping_method)
     if (input$samples_grouping_method == "k-means clustering") {
+      max_hypervar <- 10000
+      if (Sys.getenv('SHINY_PORT') != "") {
+        max_hypervar <- 3000
+      }
       tagList(
         # PCA
         sliderInput(
           "diff_pca_top_var", 
           label = "Number of top variance rows to use in PCA computation", 
           min = 1000, 
-          max = 10000, 
+          max = max_hypervar, 
           value = 2000, 
           step = 100
         ),
         bsTooltip("diff_pca_top_var", 
-                  title = "Only this number of hyper-variable bins will be selected to use in PCA", 
+                  title = "Only this number of hyper-variable bins will be selected to use in PCA. The maximum number of hyper-variable bins is 10,000 in session run on local host but only 3,000 for those run on server.", 
                   placement = "right", 
                   options = list(container = "body")), 
         wellPanel(
@@ -11951,6 +12003,9 @@ server <- function(input, output, session) {
             selected = 500
           ),
           textOutput("disease_snp_nbins_msg"),
+          wellPanel(
+            p("You can include up to 10,000 bins in your SNP windows on server. You can also run this app from local R session to lift this limit.")
+          ),
           actionButton("show_disease_snp_bins_table", "Show table of genomic bins covered by SNP windows"),
           downloadButton("disease_snp_bins_download", "Download BED file of genomic bins covered by SNP windows"), 
           uiOutput("disease_run_analysis_ui")
@@ -12057,7 +12112,8 @@ server <- function(input, output, session) {
   
   # Text message for number of bins in SNP windows
   output$disease_snp_nbins_msg <- renderText({
-    paste("There are", length(disease_gbins()), "genomic bins in your SNP windows. ")
+    msg <- paste("There are", length(disease_gbins()), "genomic bins in your SNP windows.")
+    msg
   })
   
   # Render SNP bins table on button click
@@ -12108,6 +12164,8 @@ server <- function(input, output, session) {
   output$disease_run_analysis_ui <- renderUI({
     if (length(disease_gbins()) == 0) {
       p("There are no genomic bins in the SNP window. Please use a larger SNP window extension. ")
+    } else if ((length(disease_gbins()) > 10000) && (Sys.getenv('SHINY_PORT') != "")) {
+      p("You have selected too many bins. You can include up to 10,000 bins in your SNP windows on server. You can also run this app from local R session to lift this limit.")
     } else {
       actionButton("disease_run_analysis", "Run disease SNP analysis")
     }
