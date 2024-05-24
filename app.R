@@ -139,6 +139,16 @@ ui <- fluidPage(
   
   title = "ChromBIRD", 
   
+  tags$head(
+    tags$style(HTML('.important-btn:hover{background-color:#d14715}
+                      .important-btn{color: white; background-color: #e95420; border: 1px solid white;}'))
+  ),
+  
+  tags$head(
+    tags$style(HTML('.regular-btn:hover{background-color:#ffb499; color: #e95420; }
+                      .regular-btn{color: #e95420; background-color: #ffd7c8; border: 1px solid white;}'))
+  ),
+  
   navbarPage(
     title = "ChromBIRD", 
     id = "chrombird_nav",
@@ -160,11 +170,11 @@ ui <- fluidPage(
               id = "stats_donut", 
               tags$div(
                 id = "stats_donut_fig", 
-                includeHTML("www/stats_donut.html")
+                includeHTML("www/overview/stats_donut.html")
               ),
               tags$div(
                 id = "stats_donut_legend", 
-                includeHTML("www/stats_donut_legend.html")
+                includeHTML("www/overview/stats_donut_legend.html")
               )
             ), 
           ),
@@ -182,11 +192,8 @@ ui <- fluidPage(
                 HTML("<h4><font color=\"grey\"><i>Analyze and visualize accessibility data with interactive or publication-ready images. </i></font></h4>")
               ),
               br(), 
-              tags$head(
-                tags$style(HTML('#show_r_instructions:hover{background-color:#d14715}
-                                #show_r_instructions{color: white; background-color: #e95420;}'))
-              ),
-              actionButton("show_r_instructions", "Run from local R session")
+              actionButton("show_r_instructions", "Run from local R session", 
+                           class = "important-btn")
             )
           )
         )
@@ -205,12 +212,12 @@ ui <- fluidPage(
           # Footer
           tags$div(
             style = "position:absolute;top:40%;left:30%;width:95%;",
-            includeHTML("www/footer_background.svg"), 
+            includeHTML("www/overview/footer_background.svg"), 
           ), 
           tags$div(
             style = "position:absolute;top:85%;left:95%;width:15%;",
             # Logo
-            includeHTML("www/chrombird_logo.svg")
+            includeHTML("www/overview/chrombird_logo.svg")
           ),
           
           # Arrows
@@ -284,7 +291,7 @@ ui <- fluidPage(
               style = "position:absolute;top:25%;left:10%;width:40%;height:35%;",
               tags$div(
                 style = "height:60%;width:30%;",
-                includeHTML("www/samples.svg")
+                includeHTML("www/overview/samples.svg")
               ), 
               tags$div(
                 tags$p(
@@ -302,7 +309,7 @@ ui <- fluidPage(
               style= "position:absolute;top:60%;left:10%;width:40%;height:35%;",
               tags$div(
                 style = "height:60%;width:30%;",
-                includeHTML("www/loci.svg")
+                includeHTML("www/overview/loci.svg")
               ), 
               tags$div(
                 tags$p(
@@ -336,7 +343,7 @@ ui <- fluidPage(
               ), 
               tags$div(
                 style = "position:absolute;bottom:0%;left:0%;width:100%;padding-left:10%;padding-right:10%;", 
-                includeHTML("www/download.svg")
+                includeHTML("www/overview/download.svg")
               )
             ),
             tags$div(
@@ -346,7 +353,7 @@ ui <- fluidPage(
               style= "position:absolute;top:0%;left:50%;width:50%;height:100%;padding:10%;",
               tags$div(
                 style = "position:absolute;top:0%;left:0%;width:100%;padding:10%;", 
-                includeHTML("www/ucsc.svg")
+                includeHTML("www/overview/ucsc.svg")
               ),
               tags$p(
                 class = "map_label",
@@ -371,7 +378,7 @@ ui <- fluidPage(
             ),
             tags$div(
               style = "position:absolute;top:20%;width:100%", 
-              includeHTML("www/gtex_snp.svg")
+              includeHTML("www/overview/gtex_snp.svg")
             ),
             tags$head(tags$style("#map_gtex_snp:hover {outline:solid #ff8f66 10px;}
                              #map_gtex_snp {transition: all 0.1s;}")),
@@ -390,7 +397,7 @@ ui <- fluidPage(
             ),
             tags$div(
               style = "position:absolute;top:35%;width:100%;", 
-              includeHTML("www/pca_pt.svg")
+              includeHTML("www/overview/pca_pt.svg")
             ),
             tags$head(tags$style("#map_pca_pt:hover {outline:solid #f19574 10px;}
                              #map_pca_pt {transition: all 0.1s;}")),
@@ -409,7 +416,7 @@ ui <- fluidPage(
             ),
             tags$div(
               style = "position:absolute;top:35%;width:100%;", 
-              includeHTML("www/diff_pt.svg")
+              includeHTML("www/overview/diff_pt.svg")
             ),
             tags$head(tags$style("#map_pt_diff:hover {outline:solid #f19574 10px;}
                              #map_pt_diff {transition: all 0.1s;}")),
@@ -478,7 +485,7 @@ ui <- fluidPage(
             ),
             tags$div(
               style = "position:absolute;top:35%;width:100%;", 
-              includeHTML("www/diff_group.svg")
+              includeHTML("www/overview/diff_group.svg")
             ),
             tags$head(tags$style("#map_group_diff:hover {outline:solid #e36635 10px;}
                              #map_group_diff {transition: all 0.1s;}")),
@@ -547,7 +554,7 @@ ui <- fluidPage(
             ),
             tags$div(
               style = "position:absolute;top:20%;width:100%;", 
-              includeHTML("www/disease_snp.svg")
+              includeHTML("www/overview/disease_snp.svg")
             ),
             tags$head(tags$style("#map_disease_snp:hover {outline:solid #35e3b5 10px;}
                              #map_disease_snp {transition: all 0.1s;}")),
@@ -594,7 +601,9 @@ ui <- fluidPage(
             sidebarLayout(
               sidebarPanel(
                 uiOutput("sample_add_method_ui"), 
-                actionButton("show_sel_samples_table", "Show selected samples table", style = "width: 100%; border: 1px solid white;"), 
+                actionButton("show_sel_samples_table", "Show selected samples table", 
+                             class = "important-btn",
+                             style = "width: 100%; border: 1px solid white;"), 
                 bsTooltip(
                   "show_sel_samples_table", 
                   title = "You will be able to subset the selected samples in this table", 
@@ -602,8 +611,12 @@ ui <- fluidPage(
                   options = list(container = "body", 
                                  html = TRUE)
                 ),
-                actionButton("sel_example_dat", "Select example dataset (GTEx adrenal gland)", style = "width: 100%; border: 1px solid white;"),
-                actionButton("clear_sel_samples", "Clear sample selection", style = "width: 100%; border: 1px solid white;")
+                actionButton("sel_example_dat", "Select example dataset (GTEx adrenal gland)", 
+                             style = "width: 100%; border: 1px solid white;", 
+                             class = "regular-btn"),
+                actionButton("clear_sel_samples", "Clear sample selection", 
+                             style = "width: 100%; border: 1px solid white;", 
+                             class = "regular-btn")
               ), 
               mainPanel(
                 uiOutput("sample_add_ui")
@@ -622,7 +635,10 @@ ui <- fluidPage(
             htmlOutput("n_bins_msg"), 
             
             # Button for showing table of selected bins
-            actionButton("show_sel_bins_table", "Show selected bins in table"),
+            actionButton("show_sel_bins_table", "Show selected bins in table", 
+                         class = "regular-btn"),
+            
+            br(),br(),
             
             # Panel for range selection for all samples
             selectInput(
@@ -655,7 +671,8 @@ ui <- fluidPage(
             # BIRD range
             conditionalPanel(
               condition = "input.all_sel_method == 'Use entire BIRD range'", 
-              downloadButton("download_bird_range_bed", "Download BIRD output range BED")
+              downloadButton("download_bird_range_bed", "Download BIRD output range BED", 
+                             class = "regular-btn")
             ),
             
             # BED input
@@ -909,10 +926,12 @@ ui <- fluidPage(
           ),
           actionButton("show_gtex_tissue_table", 
                        "Subset GTEx tissues", 
-                       style = "width: 100%; border: 1px solid white;"),
+                       style = "width: 100%; border: 1px solid white;", 
+                       class = "regular-btn"),
           actionButton("show_gtex_trait_table", 
                        "Subset traits", 
-                       style = "width: 100%; border: 1px solid white;"),
+                       style = "width: 100%; border: 1px solid white;", 
+                       class = "regular-btn"),
           fluidRow(
             column(
               6, 
@@ -948,12 +967,14 @@ ui <- fluidPage(
           ), 
           actionButton("update_gtex_heatmap", 
                        "Apply settings and update heatmap", 
-                       style = "width: 100%; border: 1px solid white;")
+                       style = "width: 100%; border: 1px solid white;", 
+                       class = "important-btn")
         ), 
         mainPanel(
           plotlyOutput("gtex_trait_heatmap"), 
           #actionButton("gtex_trait_heatmap_download", "Download plot"),
-          downloadButton("download_gtex_trait_table", "Download numeric table")
+          downloadButton("download_gtex_trait_table", "Download numeric table", 
+                         class = "regular-btn")
         )
       )
     ), 
@@ -964,18 +985,33 @@ ui <- fluidPage(
       tabPanel(
         title = "Tutorial", 
         
-        tabsetPanel(
-          id = "tutorial_panels", 
-          tabPanel(
-            title = "Step-by-step tutorial", 
-            value = "guided_tut"
-          ), 
-          tabPanel(
-            title = "Video tutorial", 
-            value = "vid_tut", 
-            "Insert video demos"
-          )
-        )
+        selectInput(
+          "tut_page_sel", 
+          "View tutorial:",
+          choices = list("Input Selection and Download" = "input_sel_tut", 
+                         "PCA and Pseudo-temporal Analysis" = "pca_pt_tut", 
+                         "Differential Test between Groups" = "diff_group_tut", 
+                         "Disease SNP Analysis" = "disease_snp_tut",
+                         "GTEx SNP Accessibility Heatmap" = "gtex_snp_tut")
+        ),
+        
+        tags$head(tags$style(".content_link {color:black;}
+                               .content_link:hover {color:#e95420;text-decoration:underline;}")),
+        
+        uiOutput("tut_page_ui")
+        
+        # tabsetPanel(
+        #   id = "tutorial_panels", 
+        #   tabPanel(
+        #     title = "Step-by-step tutorial", 
+        #     value = "guided_tut"
+        #   ), 
+        #   tabPanel(
+        #     title = "Video tutorial", 
+        #     value = "vid_tut", 
+        #     "Insert video demos"
+        #   )
+        # )
       ), 
       
       tabPanel(
@@ -995,7 +1031,8 @@ server <- function(input, output, session) {
   
   observeEvent(input$map_input_sel, {
     updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
-    #updateTabsetPanel(session, inputId = "tutorial_panels", selected = "vid_tut")
+    updateSelectInput(inputId = "tut_page_sel", selected = "input_sel_tut")
+    # updateTabsetPanel(session, inputId = "tutorial_panels", selected = "vid_tut")
   })
   
   # Which plot are we downloading
@@ -1031,9 +1068,11 @@ server <- function(input, output, session) {
             uiOutput("plot_download_ppi_ui")
           )
         ), 
-        downloadButton("plot_download", "Confirm and download"), 
+        downloadButton("plot_download", "Confirm and download", 
+                       class = "regular-btn"), 
         easyClose = FALSE, 
-        footer = actionButton("close_plot_download_modal", "Close")
+        footer = actionButton("close_plot_download_modal", "Close", 
+                              class = "regular-btn")
       )
     )
   })
@@ -1246,9 +1285,11 @@ server <- function(input, output, session) {
             )
           )
         ),
-        downloadButton("plotly_download", "Confirm and download"), 
+        downloadButton("plotly_download", "Confirm and download", 
+                       class = "regular-btn"), 
         easyClose = FALSE, 
-        footer = actionButton("close_plotly_download_modal", "Close")
+        footer = actionButton("close_plotly_download_modal", "Close", 
+                              class = "regular-btn")
       )
     )
   })
@@ -1419,7 +1460,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         HTML("<p>All predictions assumed to be <b>log<sub>2</sub>-transformed</b>. </p>"),
-        shinyDirButton('loc_path', 'Select a local directory', 'Please select a directory', FALSE), 
+        shinyDirButton('loc_path', 'Select a local directory', 'Please select a directory', FALSE, 
+                       class = "important-btn"), 
         textOutput("loc_path_msg"), 
         HTML("<p>Please make sure the rds files in your indicated path are <b>downloaded from our 
              database</b> or <b>follow the format requirement</b> listed in the popover content (information icon above). </p>"),
@@ -1437,7 +1479,8 @@ server <- function(input, output, session) {
         selectInput("sample_add_txt_file_transform", 
                     "Transformation applied on values: ", 
                     choices = c("log-transformed", "none")),
-        actionButton("submit_sample_add_txt_file", "Confirm samples upload"),
+        actionButton("submit_sample_add_txt_file", "Confirm samples upload", 
+                     class = "regular-btn"),
         textOutput("sample_add_txt_submission_msg")
       )
     } else if (input$sample_add_method == "upload_bam") {
@@ -1447,7 +1490,8 @@ server <- function(input, output, session) {
                   multiple = TRUE, 
                   label = "Choose BAM files"), 
         DT::dataTableOutput("sample_add_bam_upload_table"), 
-        actionButton("submit_add_bam_file", "Confirm samples selection"), 
+        actionButton("submit_add_bam_file", "Confirm samples selection", 
+                     class = "regular-btn"), 
         textOutput("sample_add_bam_submission_msg")
       )
     }
@@ -1481,7 +1525,8 @@ server <- function(input, output, session) {
           ),
           # Display table with project info
           DT::dataTableOutput('loc_proj_table'), 
-          actionButton("loc_proj_sel_check", "Check project RDS file"), 
+          actionButton("loc_proj_sel_check", "Check project RDS file", 
+                       class = "important-btn"), 
           textOutput("loc_proj_sel_msg")
         )
       ), 
@@ -1567,7 +1612,8 @@ server <- function(input, output, session) {
                read_min, "m", read_sec, "s to be read. Please be aware that 
                performing this action will cause any previously selected local 
                samples to be removed from sample selection table. ")), 
-      actionButton("loc_proj_sel_submit", "Okay"), 
+      actionButton("loc_proj_sel_submit", "Okay", 
+                   class = "regular-btn"), 
       easyClose = TRUE
     ))
   })
@@ -1637,7 +1683,8 @@ server <- function(input, output, session) {
             actionButton(
               "loc_sample_table_sel_all", 
               "Select all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           ), 
           column(
@@ -1645,7 +1692,8 @@ server <- function(input, output, session) {
             actionButton(
               "loc_sample_table_sel_none", 
               "Deselect all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           )
         ),
@@ -1653,7 +1701,8 @@ server <- function(input, output, session) {
         DT::dataTableOutput('loc_sample_table'), 
         actionButton(
           "loc_submit_sample_sel_table", 
-          label = "Confirm sample selection"
+          label = "Confirm sample selection", 
+          class = "important-btn"
         ), 
         textOutput("loc_sample_sel_table_submission_msg")
       )
@@ -1686,7 +1735,8 @@ server <- function(input, output, session) {
         ),
         actionButton(
           "loc_submit_sample_sel_text", 
-          label = "Confirm sample selection"
+          label = "Confirm sample selection", 
+          class = "important-btn"
         ),
         textOutput("loc_sample_sel_text_submission_msg")
       )
@@ -1851,7 +1901,8 @@ server <- function(input, output, session) {
             actionButton(
               "proj_table_sel_none", 
               "Deselect all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           ), 
           column(
@@ -1911,7 +1962,8 @@ server <- function(input, output, session) {
         ),
         actionButton(
           "submit_proj_sel_text", 
-          label = "Confirm project selection"
+          label = "Confirm project selection", 
+          class = "regular-btn"
         ),
         textOutput("proj_sel_submission_text")
       )
@@ -1924,7 +1976,8 @@ server <- function(input, output, session) {
       downloadButton(
         "rds_download", 
         "Download RDS file(s)", 
-        width = "100%"
+        width = "100%", 
+        class = "regular-btn"
       )
     }
   })
@@ -1945,7 +1998,8 @@ server <- function(input, output, session) {
             6, 
             actionButton(
               "show_large_study_instructions", 
-              "Show instructions for working with large studies"
+              "Show instructions for working with large studies", 
+              class = "regular-btn"
             ),
             checkboxInput(
               "proj_table_show_large_studies", 
@@ -1971,7 +2025,8 @@ server <- function(input, output, session) {
           label = "Copy code", 
           clipText = runapp_code, 
           icon = icon("clipboard"), 
-          style = "border: 1px solid white;"
+          style = "border: 1px solid white;", 
+          class = "regular-btn"
         ), 
         br(), 
         HTML(paste0("<p>There are 2 recommended options for working with large studies. 
@@ -2132,7 +2187,8 @@ server <- function(input, output, session) {
             actionButton(
               "sample_table_sel_all", 
               "Select all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           ), 
           column(
@@ -2140,7 +2196,8 @@ server <- function(input, output, session) {
             actionButton(
               "sample_table_sel_none", 
               "Deselect all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           )
         ),
@@ -2148,7 +2205,8 @@ server <- function(input, output, session) {
         DT::dataTableOutput('sample_table'), 
         actionButton(
           "submit_sample_sel_table", 
-          label = "Confirm sample selection"
+          label = "Confirm sample selection", 
+          class = "important-btn"
         ), 
         textOutput("sample_sel_table_submission_msg"),
         br(), 
@@ -2183,7 +2241,8 @@ server <- function(input, output, session) {
         ),
         actionButton(
           "submit_sample_sel_text", 
-          label = "Confirm sample selection"
+          label = "Confirm sample selection", 
+          class = "important-btn"
         ),
         textOutput("sample_sel_text_submission_msg")
       )
@@ -2196,12 +2255,14 @@ server <- function(input, output, session) {
       fluidRow(
         column(
           3, 
-          downloadButton("bw_download", "Download BigWig file(s)")
+          downloadButton("bw_download", "Download BigWig file(s)", 
+                         class = "regular-btn")
         ), 
         column(
           3,
           div(style = "display: inline-block;vertical-align: middle;", 
-              downloadButton("ucsc_session_download", "Download session file(s)")), 
+              downloadButton("ucsc_session_download", "Download session file(s)", 
+                             class = "regular-btn")), 
           div(style = "display: inline-block;vertical-align: middle;", 
               bsButton("ucsc_session_info", 
                        label = "", 
@@ -2212,7 +2273,7 @@ server <- function(input, output, session) {
             id = "ucsc_session_info",
             title = "<h4>Sample selection table</h4>",
             content = do.call(paste0, 
-                              popover_contents$sample_sel_table_info),
+                              popover_contents$ucsc_session_info),
             placement = "right",
             trigger = "focus",
             options = list(container = "body", 
@@ -2323,7 +2384,8 @@ server <- function(input, output, session) {
             label = "Copy code", 
             clipText = runapp_code, 
             icon = icon("clipboard"), 
-            style = "border: 1px solid white;"
+            style = "border: 1px solid white;", 
+            class = "regular-btn"
           ), 
           br(), 
           HTML(paste0("<p>There are 2 recommended options for working with large studies. 
@@ -2392,7 +2454,8 @@ server <- function(input, output, session) {
               "Do not show this warning again", 
               value = FALSE
             ), 
-            actionButton("confirm_warning_msg", "Okay"), 
+            actionButton("confirm_warning_msg", "Okay", 
+                         class = "regular-btn"), 
             easyClose = FALSE, 
             footer = NULL
           )
@@ -2457,7 +2520,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         DT::dataTableOutput("sel_samples_table"),
-        actionButton("rm_sel_samples", "Remove selected samples from table"), 
+        actionButton("rm_sel_samples", "Remove selected samples from table", 
+                     class = "regular-btn"), 
         easyClose = TRUE
       )
     )
@@ -2897,7 +2961,8 @@ server <- function(input, output, session) {
   observeEvent(input$clear_sel_samples, {
     showModal(modalDialog(
       p("Clear all selected samples?"), 
-      actionButton("clear_sel_samples_confirm", "Yes")
+      actionButton("clear_sel_samples_confirm", "Yes", 
+                   class = "regular-btn")
     ))
   })
   
@@ -3036,7 +3101,8 @@ server <- function(input, output, session) {
     showModal(
       modalDialog(
         title = "Selected bins table", 
-        downloadButton("sel_bins_table_download", "Download BED of selected bins"),
+        downloadButton("sel_bins_table_download", "Download BED of selected bins", 
+                       class = "regular-btn"),
         dataTableOutput("sel_bins_table"), 
         size = "l",
         easyClose = TRUE
@@ -3107,8 +3173,10 @@ server <- function(input, output, session) {
     } else {
       tagList(
         textOutput("download_msg_zip_txt"),
-        downloadButton("txt_download", "Download txt file"),
-        downloadButton("zip_download", "Download zip file")
+        downloadButton("txt_download", "Download txt file", 
+                       class = "important-btn"),
+        downloadButton("zip_download", "Download zip file", 
+                       class = "important-btn")
       )
     }
   })
@@ -3475,7 +3543,8 @@ server <- function(input, output, session) {
         bsTooltip("pca_plot", 
                   title = "In this PCA plot, each point is a sample you selected. You can brush on this plot to see specific samples information in a table", 
                   placement = "top"),
-        actionButton("pca_plot_download", "Download plot"), 
+        actionButton("pca_plot_download", "Download plot", 
+                     class = "regular-btn"), 
         hr(),
         # Display table with brushed samples
         h4("PCA plot brushed points table"),
@@ -3602,7 +3671,8 @@ server <- function(input, output, session) {
       tagList(
         h4("PCA explained variance plot"),
         plotOutput("pca_var_plot"), 
-        actionButton("pca_var_plot_download", "Download plot")
+        actionButton("pca_var_plot_download", "Download plot",
+                     class = "regular-btn")
       )
     } else {
       # Output cumulative variance plot
@@ -3612,7 +3682,8 @@ server <- function(input, output, session) {
         bsTooltip("pca_cumvar_plot", 
                   title = "The dashed line indicates the optimal number of PCs calculated by elbow method", 
                   placement = "top"), 
-        actionButton("pca_cumvar_plot_download", "Download plot")
+        actionButton("pca_cumvar_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -3777,7 +3848,8 @@ server <- function(input, output, session) {
       # Make plot for pseudo-time trajectory over sample clusters
       tagList(
         h3("Pseudotime trajectory"), 
-        downloadButton('pt_traj_samples_order_download', "Download sample ids ordered by pseudo-time"),
+        downloadButton('pt_traj_samples_order_download', "Download sample ids ordered by pseudo-time", 
+                       class = "regular-btn"),
         checkboxInput(
           "pt_traj_show_clustering_table", 
           label = "Show clustering table"
@@ -3797,7 +3869,8 @@ server <- function(input, output, session) {
         uiOutput('pt_traj_show_side_branch_ui'),
         h4("Pseudotime trajectory plot"),
         plotOutput('pt_traj', brush = 'pt_traj_brush'), 
-        actionButton("plot_traj_plot_download", "Download plot"), 
+        actionButton("plot_traj_plot_download", "Download plot", 
+                     class = "regular-btn"), 
         bsTooltip("pt_traj", 
                   title = "The selected trajectory is shown connecting anchoring clusters. Each data point is a sample. You can brush the points to view their specifics in a table. ", 
                   placement = "top"),
@@ -3882,7 +3955,7 @@ server <- function(input, output, session) {
       )
     } else if (input$pt_chracc_dat_type == "Individual genomic bin") {
       tagList(
-        tags$div(style = "display:inline-block; vertical-align:middle;", h3("Individual genomic bin expression along pseudo-time")), 
+        tags$div(style = "display:inline-block; vertical-align:middle;", h3("Individual genomic bin accessibility along pseudo-time")), 
         tags$div(style = "display:inline-block; vertical-align:middle;", 
                  bsButton("gbin_chracc_info", 
                           label = "", 
@@ -4149,11 +4222,10 @@ server <- function(input, output, session) {
     
   })
   
-  # Function adapted from TSCAN for sample clustering based on PCA result
-  samples_clust <- reactive({
+  all_samples_clust <- reactive({
     set.seed(12345)
     pcareduceres <- pca_res()[, 1:input$pt_n_pc]
-    clusternum <- input$pt_range[1]:input$pt_range[2]
+    clusternum <- 2:min(15, nrow(pca_res()))
     clusternum <- clusternum[clusternum > 1]
     # Find optimal clustering using kmeans and evaluate with total within sum of squares using elbow method
     showModal(modalDialog("Finding sample clusters...", footer = NULL, easyClose = TRUE, size = "s"))
@@ -4173,15 +4245,24 @@ server <- function(input, output, session) {
       kmeans_res[['tot.withinss']] <- 0
       kmeans_res_list[[length(kmeans_res_list) + 1]] <- kmeans_res
     }
+    names(kmeans_res_list) <- clusternum
+    kmeans_res_list
+  })
+  
+  # Function adapted from TSCAN for sample clustering based on PCA result
+  samples_clust <- reactive({
+    pcareduceres <- pca_res()[, 1:input$pt_n_pc]
+    clusternum <- input$pt_range[1]:input$pt_range[2]
+    clust_in_range <- all_samples_clust()[as.character(clusternum)]
     # Use elbow method to find optimal number of clusters
-    wss <- sapply(kmeans_res_list, function(x) {x$tot.withinss})
+    wss <- sapply(clust_in_range, function(x) {x$tot.withinss})
     x <- 1:length(wss)
     opt_nclust_i <- which.min(sapply(x, function(i) {
       x2 <- pmax(0,x-i)
       sum(lm(wss~x+x2)$residuals^2)
     }))
     opt_nclust <- clusternum[opt_nclust_i]
-    kmeans_res <- kmeans_res_list[[opt_nclust_i]]
+    kmeans_res <- clust_in_range[[opt_nclust_i]]
     # Assign id to clusters
     clusterid <- kmeans_res$cluster
     clucenter <- matrix(0, ncol = ncol(pcareduceres), nrow = opt_nclust)
@@ -4314,7 +4395,8 @@ server <- function(input, output, session) {
     if (input$pt_traj_show_clustering_table) {
       tagList(
         h4("Anchoring clusters table"),
-        downloadButton('pt_traj_clustering_table_download', 'Download clustering table'), 
+        downloadButton('pt_traj_clustering_table_download', 'Download clustering table', 
+                       class = "regular-btn"), 
         DT::dataTableOutput('pt_traj_clustering_table')
       )
     }
@@ -4689,7 +4771,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_clust_wss_plot", 
                   title = "The dashed line indicates the optimal number of clusters determined by elbow method. ", 
                   placement = "top"), 
-        actionButton("pt_gbin_clust_wss_plot_download", "Download plot")
+        actionButton("pt_gbin_clust_wss_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -4809,7 +4892,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_clust_plot_pca", 
                   title = "Each data point represents a genomic bin. Brush on points to see details in table. ", 
                   placement = "top"),
-        actionButton("pt_gbin_clust_plot_pca_download", "Download plot"), 
+        actionButton("pt_gbin_clust_plot_pca_download", "Download plot", 
+                     class = "regular-btn"), 
         hr(),
         h4("PCA plot brushed points table"),
         DT::dataTableOutput('pt_gbin_clust_plot_pca_brushed')
@@ -4822,14 +4906,16 @@ server <- function(input, output, session) {
     } else if (input$pt_gbin_clust_res_show_panel == "Clustering") {
       tagList(
         h4("Genomic bins clustering table"),
-        downloadButton('gbin_clust_table_download', 'Download clustering table'), 
+        downloadButton('gbin_clust_table_download', 'Download clustering table', 
+                       class = "regular-btn"), 
         DT::dataTableOutput('gbin_clust_table')
       )
     } else if (input$pt_gbin_clust_res_show_panel == "Cluster Plot (UMAP)") {
       tagList(
         h4("UMAP plot of genomic bin clusters"), 
         plotOutput('pt_gbin_clust_plot_umap'), 
-        actionButton("pt_gbin_clust_plot_umap_download", "Download plot")
+        actionButton("pt_gbin_clust_plot_umap_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -5114,19 +5200,22 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_clust_chracc_plot", 
                   title = "Data points are arranged in order of pseudo time along the x-axis. Each data point represents the average predicted log accessibility of the selected genomic bin cluster. ", 
                   placement = "top"), 
-        actionButton("pt_gbin_clust_chracc_plot_download", "Download plot")
+        actionButton("pt_gbin_clust_chracc_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gbin_clust_chracc_choose_plot == "Heatmap") {
       if (input$pt_n_gbin_clust > 1) {
         tagList(
           h4("Genomic bin clusters average accessibility heat map"),
           actionButton('show_interactive_pt_gbin_clust_chracc_heatmap', 
-                       "Show interactive heatmap"), 
+                       "Show interactive heatmap", 
+                       class = "regular-btn"), 
           plotOutput('pt_gbin_clust_chracc_heatmap'), 
           bsTooltip("pt_gbin_clust_chracc_heatmap", 
                     title = "Heat map columns are arranged in order of pseudo time. Each heat map cell represents the average predicted log accessibility of the selected genomic bin cluster. ", 
                     placement = "top"), 
-          actionButton("pt_gbin_clust_chracc_heatmap_download", "Download plot")
+          actionButton("pt_gbin_clust_chracc_heatmap_download", "Download plot", 
+                       class = "regular-btn")
         )
       } else {
         # No need to use heat map visualization
@@ -5151,7 +5240,8 @@ server <- function(input, output, session) {
         bsTooltip("pt_gbin_clust_expr_plot", 
                   title = "Data points are arranged in order of pseudo time along the x-axis. Each data point represents the scaled average log expression of the selected genomic bin cluster. ", 
                   placement = "top"), 
-        actionButton("pt_gbin_clust_expr_plot_download", "Download plot")
+        actionButton("pt_gbin_clust_expr_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gbin_clust_expr_choose_plot == "Heatmap") {
       if (input$pt_n_gbin_clust > 1) {
@@ -5159,12 +5249,14 @@ server <- function(input, output, session) {
           uiOutput("pt_gbin_clust_expr_gene_dist_ui"),
           h4("Genomic bin clusters average expression heat map"),
           actionButton('show_interactive_pt_gbin_clust_expr_heatmap', 
-                       "Show interactive heatmap"), 
+                       "Show interactive heatmap", 
+                       class = "regular-btn"), 
           plotOutput('pt_gbin_clust_expr_heatmap'), 
           bsTooltip("pt_gbin_clust_expr_heatmap", 
                     title = "Heat map columns are arranged in order of pseudo time. Each heat map cell represents the average expression of the selected genomic bin cluster scaled across samples. ", 
                     placement = "top"), 
-          actionButton("pt_gbin_clust_expr_heatmap_download", "Download plot")
+          actionButton("pt_gbin_clust_expr_heatmap_download", "Download plot", 
+                       class = "regular-btn")
         )
       } else {
         # No need to use heat map visualization
@@ -5558,7 +5650,8 @@ server <- function(input, output, session) {
                   title = "Each point in this plot represents a sample. The samples are sorted by assigned pseudo-time point along x-axis. The y-axis values are predicted log<sub>2</sub> accessibility for each sample. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gbin_chracc_plot_download", "Download plot")
+        actionButton("pt_gbin_chracc_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gbin_chracc_choose_plot == "Heatmap") {
       tagList(
@@ -5589,13 +5682,15 @@ server <- function(input, output, session) {
           )
         ),
         actionButton('show_interactive_pt_gbin_chracc_heatmap', 
-                     "Show interactive heatmap"), 
+                     "Show interactive heatmap", 
+                     class = "regular-btn"), 
         plotOutput('pt_gbin_chracc_heatmap'), 
         bsTooltip("pt_gbin_chracc_heatmap", 
                   title = "Columns in this heat map are samples, and they are sorted by the assigned pseudo-time point. Rows in this heat map are genomic bins. Each cell in this heat map is the predicted log<sub>2</sub> accessibility of a genomic position in a sample. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gbin_chracc_heatmap_download", "Download plot")
+        actionButton("pt_gbin_chracc_heatmap_download", "Download plot",
+                     class = "regular-btn")
       )
     }
   })
@@ -5627,7 +5722,8 @@ server <- function(input, output, session) {
                   title = "Each point in this plot represents a sample. The samples are sorted by assigned pseudo-time point along x-axis. The y-axis values are average scaled log<sub>2</sub> expression for each sample. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gbin_expr_plot_download", "Download plot")
+        actionButton("pt_gbin_expr_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gbin_expr_choose_plot == "Heatmap") {
       tagList(
@@ -5658,13 +5754,15 @@ server <- function(input, output, session) {
           )
         ),
         actionButton('show_interactive_pt_gbin_expr_heatmap', 
-                     "Show interactive heatmap"), 
+                     "Show interactive heatmap", 
+                     class = "regular-btn"), 
         plotOutput('pt_gbin_expr_heatmap'), 
         bsTooltip("pt_gbin_expr_heatmap", 
                   title = "Columns in this heat map are samples, and they are sorted by the assigned pseudo-time point. Rows in this heat map are genomic bins. Each cell in this heat map is the average scaled log<sub>2</sub> expression of a genomic position in a sample. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gbin_expr_heatmap_download", "Download plot")
+        actionButton("pt_gbin_expr_heatmap_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -5676,8 +5774,13 @@ server <- function(input, output, session) {
     topvar_gbin_tss <- gbin_tss[gbin_names, ]
     topvar_gbin_snp <- gbin_snp[gbin_names, ]
     df$nearest_gene <- as.factor(topvar_gbin_tss$gene)
-    valid_annots <- annots[annots$ENSEMBL %in% rownames(scaled_expr_pt_mat()), ]
-    df$match_nonzero_ensembl <- topvar_gbin_tss$gene %in% valid_annots$SYMBOL
+    if ((! is.null(input$pt_show_panel)) && 
+        (input$pt_show_panel == "Nearest gene expression along pseudotime")) {
+      # Only include match_nonzero_ensembl for expr along pt to avoid loading 
+      # expr data for chracc along pt
+      valid_annots <- annots[annots$ENSEMBL %in% rownames(scaled_expr_pt_mat()), ]
+      df$match_nonzero_ensembl <- topvar_gbin_tss$gene %in% valid_annots$SYMBOL
+    }
     df$distance_to_gene <- topvar_gbin_tss$distance
     df$relative_position_to_tss <- as.factor(topvar_gbin_tss$relative_position_to_tss)
     df$nearest_snp <- topvar_gbin_snp$snp_id
@@ -5686,6 +5789,7 @@ server <- function(input, output, session) {
     df$distance_to_snp <- topvar_gbin_snp$distance
     if ((! is.null(input$pt_show_panel)) && 
         (input$pt_show_panel == "Nearest gene expression along pseudotime")) {
+      df <- df[! is.na(df$distance_to_gene), ]
       df <- df[df$distance_to_gene <= input$pt_gene_maxdist, ]
     }
     removeModal()
@@ -6024,21 +6128,24 @@ server <- function(input, output, session) {
                   title = "Along the x-axis of this plot are the samples sorted in assigned pseudo-time. The data point y-values are the average predicted log<sub>2</sub> chromatin accessibility for genomic bins nearest the selected gene. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gene_chracc_plot_download", "Download plot")
+        actionButton("pt_gene_chracc_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gene_chracc_choose_plot == "Heatmap") {
       if (nrow(pca_top_var_nearest_genes()) >= 2) {
         tagList(
           h4("Gene average accessibility along pseudo-time heat map"), 
           actionButton('show_interactive_pt_gene_chracc_heatmap', 
-                       "Show interactive heatmap"), 
+                       "Show interactive heatmap", 
+                       class = "regular-btn"), 
           checkboxInput("pt_gene_chracc_heatmap_scale", "Scale heatmap rows", value = TRUE),
           plotOutput('pt_gene_chracc_heatmap'),
           bsTooltip("pt_gene_chracc_heatmap", 
                     title = "The heat map columns are samples sorted in assigned pseudo-time. The rows are the genes near top variance genomic bins. Each heat map cell shows the average predicted log<sub>2</sub> chromatin accessibility for genomic bins nearest the gene. ", 
                     placement = "top", 
                     options = list(html = TRUE)), 
-          actionButton("pt_gene_chracc_heatmap_download", "Download plot")
+          actionButton("pt_gene_chracc_heatmap_download", "Download plot", 
+                       class = "regular-btn")
         )
       } else {
         # No need to use heat map visualization
@@ -6085,21 +6192,24 @@ server <- function(input, output, session) {
                   title = "Along the x-axis of this plot are the samples sorted in assigned pseudo-time. The data point y-values are the scaled log<sub>2</sub> expression for the selected gene. ", 
                   placement = "top", 
                   options = list(html = TRUE)), 
-        actionButton("pt_gene_expr_plot_download", "Download plot")
+        actionButton("pt_gene_expr_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_gene_expr_choose_plot == "Heatmap") {
       if ((! is.null(pca_top_var_nearest_genes())) && (nrow(pca_top_var_nearest_genes()) >= 2)) {
         tagList(
           h4("Gene expression along pseudo-time heat map"), 
           actionButton('show_interactive_pt_gene_expr_heatmap', 
-                       "Show interactive heatmap"), 
+                       "Show interactive heatmap", 
+                       class = "regular-btn"), 
           checkboxInput("pt_gene_expr_heatmap_scale", "Scale heatmap rows", value = TRUE),
           plotOutput('pt_gene_expr_heatmap'),
           bsTooltip("pt_gene_expr_heatmap", 
                     title = "The heat map columns are samples sorted in assigned pseudo-time. The rows are the genes near top variance genomic bins. Each heat map cell shows the log<sub>2</sub> expression of a gene. ", 
                     placement = "top", 
                     options = list(html = TRUE)), 
-          actionButton("pt_gene_expr_heatmap_download", "Download plot")
+          actionButton("pt_gene_expr_heatmap_download", "Download plot", 
+                       class = "regular-btn")
         )
       } else {
         # No need to use heat map visualization
@@ -6123,7 +6233,8 @@ server <- function(input, output, session) {
                         "Gene average accessibility")
           ),
           uiOutput("pt_diff_opts_ui"), 
-          actionButton("run_pt_diff_test", "Perform Test")
+          actionButton("run_pt_diff_test", "Perform Test", 
+                       class = "important-btn")
         ), 
         mainPanel(
           uiOutput("pt_diff_res_panels")
@@ -6347,7 +6458,8 @@ server <- function(input, output, session) {
                      tags$div(
                        style = "margin-top:30px; margin-bottom:30px;", 
                        h4("Differential test results table"),
-                       downloadButton("pt_diff_res_download", "Download results table"),
+                       downloadButton("pt_diff_res_download", "Download results table", 
+                                      class = "regular-btn"),
                        DT::dataTableOutput("pt_diff_res_table")
                      )),
             tabPanel("Summary",
@@ -6375,7 +6487,8 @@ server <- function(input, output, session) {
                                    title = "Histogram of selected value", 
                                    placement = "top", 
                                    options = list(container = "body")),
-                         actionButton("pt_diff_sum_hist_download", "Download plot")
+                         actionButton("pt_diff_sum_hist_download", "Download plot", 
+                                      class = "regular-btn")
                        ), 
                        wellPanel(
                          h4("p-value adjustment line plot"),
@@ -6384,7 +6497,8 @@ server <- function(input, output, session) {
                                    title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
                                    placement = "top", 
                                    options = list(container = "body")), 
-                         actionButton("pt_diff_sum_lineplot_download", "Download plot")
+                         actionButton("pt_diff_sum_lineplot_download", "Download plot", 
+                                      class = "regular-btn")
                        )
                      )), 
             tabPanel("Gene ontology", 
@@ -6445,7 +6559,8 @@ server <- function(input, output, session) {
                                      max = 500, 
                                      value = 20, 
                                      step = 10), 
-                         actionButton("run_pt_diff_go", "Find top GO terms")
+                         actionButton("run_pt_diff_go", "Find top GO terms", 
+                                      class = "important-btn")
                        ), 
                        textOutput('pt_no_feasible_go_terms_warning'), 
                        uiOutput('pt_diff_go_sel_res_ui')
@@ -6506,21 +6621,24 @@ server <- function(input, output, session) {
     if (length(pt_diff_sig_bins()) > 0) {
       if (input$pt_diff_show_panel == "Individual genomic bins") {
         tagList(
-          downloadButton("pt_diff_res_sig_bed_download", "Download significant bins BED file"), 
+          downloadButton("pt_diff_res_sig_bed_download", "Download significant bins BED file", 
+                         class = "regular-btn"), 
           bsTooltip("pt_diff_res_sig_bed_download", 
                     title = "BED file for bins that have significant differential accessibility along pseudo-time. ",
                     placement = "top")
         )
       } else if (input$pt_diff_show_panel == "Genomic bin clusters") {
         tagList(
-          downloadButton("pt_diff_res_sig_bed_download", "Download significant clusters BED files"), 
+          downloadButton("pt_diff_res_sig_bed_download", "Download significant clusters BED files", 
+                         class = "regular-btn"), 
           bsTooltip("pt_diff_res_sig_bed_download", 
                     title = "zip file of BED files. One BED file for each cluster. All bins in significantly differential clusters are included in the BED file for that cluster. ",
                     placement = "top")
         )
       } else if (input$pt_diff_show_panel == "Gene average accessibility") {
         tagList(
-          downloadButton("pt_diff_res_sig_bed_download", "Download significant bins BED file"), 
+          downloadButton("pt_diff_res_sig_bed_download", "Download significant bins BED file", 
+                         class = "regular-btn"), 
           bsTooltip("pt_diff_res_sig_bed_download", 
                     title = "BED file for all bins with nearest genes that have significant differential accessibility along pseudo-time. ",
                     placement = "top")
@@ -6832,7 +6950,8 @@ server <- function(input, output, session) {
         inputId = "pt_diff_enrichr_link", 
         label = "Go to Enrichr", 
         onclick = "window.open('https://maayanlab.cloud/Enrichr/')", 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
       rclipButton(
@@ -6840,10 +6959,13 @@ server <- function(input, output, session) {
         label = "Copy significant genes", 
         clipText = sig_genes_text, 
         icon = icon("clipboard"), 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
-      downloadButton("pt_diff_go_ext_genes_txt_download", "Download significant genes text file", style = "width: 100%; border: 1px solid white;")
+      downloadButton("pt_diff_go_ext_genes_txt_download", "Download significant genes text file", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn")
     )
   })
   
@@ -6864,7 +6986,8 @@ server <- function(input, output, session) {
         inputId = "pt_diff_great_link", 
         label = "Go to GREAT", 
         onclick = "window.open('https://great.stanford.edu/great/public/html/')", 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
       rclipButton(
@@ -6872,10 +6995,13 @@ server <- function(input, output, session) {
         label = "Copy significant bins BED", 
         clipText = clip_bed, 
         icon = icon("clipboard"),
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
-      downloadButton("pt_diff_go_ext_bed_download", "Download significant bins BED", style = "width: 100%; border: 1px solid white;")
+      downloadButton("pt_diff_go_ext_bed_download", "Download significant bins BED", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn")
     )
   })
   
@@ -6909,7 +7035,8 @@ server <- function(input, output, session) {
     if ((input$pt_diff_go_show_sig_bins_table) && (length(pt_diff_go_sig_bins()) > 0)) {
       tagList(
         h4("Significant genomic bins and their nearest genes table"),
-        downloadButton('pt_diff_go_sig_bins_table_download', "Download significant bins and nearest genes table"),
+        downloadButton('pt_diff_go_sig_bins_table_download', "Download significant bins and nearest genes table", 
+                       class = "regular-btn"),
         DT::dataTableOutput('pt_diff_go_sig_bins_table')
       )
     }
@@ -7142,7 +7269,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         br(),
-        downloadButton('pt_diff_go_table_download', "Download top GO terms table"),
+        downloadButton('pt_diff_go_table_download', "Download top GO terms table", 
+                       class = "regular-btn"),
         DT::dataTableOutput("pt_diff_go_table")
       )
     } else if (input$pt_diff_go_sel_res == 'GO terms p-value graph') {
@@ -7362,7 +7490,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         plotOutput("pt_diff_go_barplot"), 
-        actionButton("pt_diff_go_barplot_download", "Download plot")
+        actionButton("pt_diff_go_barplot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$pt_diff_go_sel_res == "GO terms accessibility along pseudo-time") {
       go_list <- pt_diff_top_go_terms()$GO.ID
@@ -7754,11 +7883,13 @@ server <- function(input, output, session) {
           "Upload txt file indicating sort order",
           accept = "text/plain"
         ),
-        actionButton("pt_submit_diff_go_barplot_custom_sort", "Confirm order"),
+        actionButton("pt_submit_diff_go_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"),
         textOutput("pt_diff_go_barplot_custom_sort_submission_text")
       )
     } else if (input$pt_diff_go_barplot_custom_sort_method == "Drag to sort") {
-      actionButton("pt_diff_go_barplot_custom_sort_drag_button", "Sort samples")
+      actionButton("pt_diff_go_barplot_custom_sort_drag_button", "Sort samples", 
+                   class = "regular-btn")
     }
   })
   
@@ -7798,7 +7929,8 @@ server <- function(input, output, session) {
     showModal(
       modalDialog(
         samples_rank_list,
-        actionButton("pt_submit_diff_go_barplot_custom_sort", "Confirm order"),
+        actionButton("pt_submit_diff_go_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"),
         textOutput("pt_diff_go_barplot_custom_sort_submission_text"),
         size = 'l',
         easyClose = TRUE
@@ -8093,7 +8225,8 @@ server <- function(input, output, session) {
                                                                                   escape = FALSE))
     showModal(modalDialog(
       tagList(
-        downloadButton("pt_go_genes_download", "Download significant genes"),
+        downloadButton("pt_go_genes_download", "Download significant genes", 
+                       class = "regular-btn"),
         DT::dataTableOutput("pt_diff_go_graph_pt_details_table")
       ),
       easyClose = TRUE
@@ -8194,7 +8327,8 @@ server <- function(input, output, session) {
                                                                                     escape = FALSE))
       showModal(modalDialog(
         tagList(
-          downloadButton("pt_go_genes_download", "Download significant genes"),
+          downloadButton("pt_go_genes_download", "Download significant genes", 
+                         class = "regular-btn"),
           DT::dataTableOutput("pt_diff_go_graph_pt_details_table")
         ),
         easyClose = TRUE
@@ -8354,13 +8488,15 @@ server <- function(input, output, session) {
             ),
           )
         ),
-        actionButton("show_interactive_heatmap", "Show interactive heat map"),
+        actionButton("show_interactive_heatmap", "Show interactive heat map", 
+                     class = "regular-btn"),
         h4("Heat map"),
         plotOutput("heat_map"), 
         bsTooltip("heat_map", 
                   title = "The heat map columns are selected samples ordered by column clusters. Each heat map row is a genomic bin. Each heat map cell value is the predicted log<sub>2</sub> chromatin accessibility value at a genomic bin in a selected sample", 
                   placement = "top"),
-        actionButton("heat_map_download", "Download plot")
+        actionButton("heat_map_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -8508,7 +8644,8 @@ server <- function(input, output, session) {
             ),
             tags$div(
               style = "display: inline-block; vertical-align: middle;", 
-              actionButton("diff_pca_show_graph_submit", "View graph")
+              actionButton("diff_pca_show_graph_submit", "View graph", 
+                           class = "regular-btn")
             )
           )
         ),
@@ -8606,7 +8743,8 @@ server <- function(input, output, session) {
         uiOutput("diff_sample_clust_res_ui"),
         actionButton(
           "submit_diff_groups_kmeans", 
-          label = "Confirm groups"
+          label = "Confirm groups", 
+          class = "important-btn"
         ),
         textOutput("diff_groups_kmeans_submission_text")
       )
@@ -8639,9 +8777,15 @@ server <- function(input, output, session) {
           value = 2000, 
           step = 100
         ),
-        actionButton("diff_plotsel_group_view", "View selected groups", style = "width: 100%; border: 1px solid white;"), 
-        actionButton("diff_plotsel_group_clear", "Clear all groups", style = "width: 100%; border: 1px solid white;"), 
-        actionButton("diff_plotsel_group_submit", "Confirm group selection", style = "width: 100%; border: 1px solid white;"), 
+        actionButton("diff_plotsel_group_view", "View selected groups", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn"), 
+        actionButton("diff_plotsel_group_clear", "Clear all groups", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn"), 
+        actionButton("diff_plotsel_group_submit", "Confirm group selection", 
+                     class = "important-btn",
+                     style = "width: 100%; border: 1px solid white;"), 
         textOutput("diff_plotsel_group_submit_message")
       )
     }
@@ -8696,7 +8840,8 @@ server <- function(input, output, session) {
         ),
         actionButton(
           "submit_diff_groups_text", 
-          label = "Confirm groups"
+          label = "Confirm groups", 
+          class = "important-btn"
         ),
         textOutput("diff_groups_text_submission_text")
       )
@@ -8724,9 +8869,13 @@ server <- function(input, output, session) {
         uiOutput("diff_group_sel_bucket"), 
         uiOutput("diff_dd_del_group_ui"), 
         uiOutput("diff_dd_add_group_ui"), 
-        actionButton("diff_dd_reset_groups", "Reset", style = "width: 40%; border: 1px solid white;"),
+        actionButton("diff_dd_reset_groups", "Reset", 
+                     style = "width: 40%; border: 1px solid white;", 
+                     class = "regular-btn"),
         br(),
-        actionButton("submit_diff_groups_dd", "Confirm groups", style = "width: 40%; border: 1px solid white;"), 
+        actionButton("submit_diff_groups_dd", "Confirm groups", 
+                     style = "width: 40%; border: 1px solid white;", 
+                     class = "important-btn"), 
         uiOutput("diff_groups_text_submission_dd")
       )
     } else if (input$diff_manual_grouping_method == "Select from plot") {
@@ -8757,9 +8906,15 @@ server <- function(input, output, session) {
         uiOutput("diff_plotsel_sel_pts_table_ui"),
         tags$div(
           style = "display: inline-block;", 
-          actionButton("diff_plotsel_add_group", "Add to new group", style = "border: 1px solid white;"),
-          actionButton("diff_plotsel_add_to_group", "Add to existing group", style = "border: 1px solid white;"),
-          actionButton("diff_plotsel_make_rest_group", "Add all remaining samples to new group", style = "border: 1px solid white;")
+          actionButton("diff_plotsel_add_group", "Add to new group", 
+                       style = "border: 1px solid white;", 
+                       class = "regular-btn"),
+          actionButton("diff_plotsel_add_to_group", "Add to existing group", 
+                       style = "border: 1px solid white;", 
+                       class = "regular-btn"),
+          actionButton("diff_plotsel_make_rest_group", "Add all remaining samples to new group", 
+                       style = "border: 1px solid white;", 
+                       class = "regular-btn")
         )
       )
     }
@@ -8881,7 +9036,8 @@ server <- function(input, output, session) {
             selectInput("diff_plotsel_add_to_group_sel", 
                         "Add to group: ", 
                         choices = c(1:length(diff_plotsel_groups()))), 
-            actionButton("diff_plotsel_add_to_group_submit", "Confirm adding to selected group")
+            actionButton("diff_plotsel_add_to_group_submit", "Confirm adding to selected group", 
+                         class = "regular-btn")
           ), 
           size = 'l',
           easyClose = TRUE
@@ -8992,7 +9148,8 @@ server <- function(input, output, session) {
   observeEvent(input$diff_plotsel_group_clear, {
     showModal(modalDialog(
       p("Clear all groups?"), 
-      actionButton("diff_plotsel_group_clear_confirm", "Yes")
+      actionButton("diff_plotsel_group_clear_confirm", "Yes", 
+                   class = "regular-btn")
     ))
   })
   
@@ -9105,7 +9262,9 @@ server <- function(input, output, session) {
   # Render UI for last rank list deletion
   output$diff_dd_del_group_ui <- renderUI({
     if ((nrow(diff_dd_groups()) > 3)) {
-      actionButton("diff_dd_del_group", "Delete last group", style = "width: 40%; border: 1px solid white;")
+      actionButton("diff_dd_del_group", "Delete last group", 
+                   style = "width: 40%; border: 1px solid white;", 
+                   class = "regular-btn")
     }
   })
   
@@ -9123,7 +9282,9 @@ server <- function(input, output, session) {
   # Render UI for adding new rank list
   output$diff_dd_add_group_ui <- renderUI({
     if (nrow(diff_dd_groups()) < ncol(pred_mat())) {
-      actionButton("diff_dd_add_group", "Add new group", style = "width: 40%; border: 1px solid white;")
+      actionButton("diff_dd_add_group", "Add new group", 
+                   style = "width: 40%; border: 1px solid white;", 
+                   class = "regular-btn")
     }
   })
   
@@ -9144,7 +9305,8 @@ server <- function(input, output, session) {
   observeEvent(input$diff_dd_reset_groups, {
     showModal(modalDialog(
       p("Clear all groups? "), 
-      actionButton("diff_dd_reset_groups_confirm", "Yes")
+      actionButton("diff_dd_reset_groups_confirm", "Yes", 
+                   class = "regular-btn")
     ))
   })
   
@@ -9273,7 +9435,8 @@ server <- function(input, output, session) {
                   title = "Each data point in this plot is a sample. Brush on this plot to view sample details. ", 
                   placement = "top", 
                   options = list(container = "body")),
-        actionButton("diff_pca_plot_download", "Download plot"), 
+        actionButton("diff_pca_plot_download", "Download plot", 
+                     class = "regular-btn"), 
         hr(),
         h4("PCA brushed points table"),
         # Display table with brushed samples
@@ -9385,7 +9548,8 @@ server <- function(input, output, session) {
                   title = "Explained variance for each PC.", 
                   placement = "top", 
                   options = list(container = "body")), 
-        actionButton("diff_pca_var_plot_download", "Download plot")
+        actionButton("diff_pca_var_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     } else if (input$diff_pca_show_graph == "Cumulative Explained Variance"){
       # Output cumulative variance plot
@@ -9396,7 +9560,8 @@ server <- function(input, output, session) {
                   title = "Cumulative explained variance along number of top PCs.", 
                   placement = "top", 
                   options = list(container = "body")), 
-        actionButton("diff_pca_cumvar_plot_download", "Download plot")
+        actionButton("diff_pca_cumvar_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -9505,7 +9670,8 @@ server <- function(input, output, session) {
                   title = "This plot shows the total within-cluster sum of squares for grouping samples into different number of clusters. The dashed line indicates the optimal number of clusters suggested by elbow method. ", 
                   placement = "top", 
                   options = list(container = "body")), 
-        actionButton("diff_sample_clust_wss_plot_download", "Download plot")
+        actionButton("diff_sample_clust_wss_plot_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -9567,7 +9733,8 @@ server <- function(input, output, session) {
                   title = "This plot shows the top 2 PCs of PCA. Each point is a sample colored by cluster. ", 
                   placement = "top", 
                   options = list(container = "body")),
-        actionButton("diff_sample_clust_plot_pca_download", "Download plot"), 
+        actionButton("diff_sample_clust_plot_pca_download", "Download plot", 
+                     class = "regular-btn"), 
         hr(),
         # Display table with brushed samples
         h4("PCA plot brushed points"),
@@ -9576,7 +9743,8 @@ server <- function(input, output, session) {
     } else if (input$diff_sample_clust_res_show_panel == "Clustering") {
       tagList(
         h4("Samples clustering table"),
-        downloadButton('diff_sample_clust_table_download', 'Download clustering table'), 
+        downloadButton('diff_sample_clust_table_download', 'Download clustering table', 
+                       class = "regular-btn"), 
         DT::dataTableOutput('diff_sample_clust_table')
       )
     } 
@@ -9795,7 +9963,8 @@ server <- function(input, output, session) {
     if (length(clu) == length(input$diff_select_sample_groups)) {
       tags$span(style="color:red", "Please select at least 1 group containing more than 1 sample to perform differential test, as group size of 1 for all groups causes 0 degree of freedom. ")
     } else {
-      actionButton("run_diff_test","Perform Test")
+      actionButton("run_diff_test","Perform Test", 
+                   class = "important-btn")
     }
   })
   
@@ -9970,7 +10139,8 @@ server <- function(input, output, session) {
                  tags$div(
                    style = "margin-top:30px; margin-bottom:30px;", 
                    h4("Differential test results table"),
-                   downloadButton("diff_res_download", "Download results table"),
+                   downloadButton("diff_res_download", "Download results table", 
+                                  class = "regular-btn"),
                    DT::dataTableOutput("diff_res_table")
                  )),
         tabPanel("Summary",
@@ -9984,7 +10154,8 @@ server <- function(input, output, session) {
                                              min = 0.0001, 
                                              max = 0.5, 
                                              value = 0.05)), 
-                       column(6, downloadButton("diff_res_sig_bed_download", "Download significant bins BED file"))
+                       column(6, downloadButton("diff_res_sig_bed_download", "Download significant bins BED file", 
+                                                class = "regular-btn"))
                      ),
                      textOutput("diff_sum_text")
                    ),
@@ -9998,7 +10169,8 @@ server <- function(input, output, session) {
                                title = "Histogram of selected value", 
                                placement = "top", 
                                options = list(container = "body")), 
-                     actionButton("diff_sum_hist_download", "Download plot")
+                     actionButton("diff_sum_hist_download", "Download plot", 
+                                  class = "regular-btn")
                    ), 
                    wellPanel(
                      h4("p-value adjustment line plot"),
@@ -10007,7 +10179,8 @@ server <- function(input, output, session) {
                                title = "Line plot of sorted p-values for all bins before and after FDR adjustment. Dashed line indicates the selected significance level. ", 
                                placement = "top", 
                                options = list(container = "body")), 
-                     actionButton("diff_sum_lineplot_download", "Download plot")
+                     actionButton("diff_sum_lineplot_download", "Download plot", 
+                                  class = "regular-btn")
                    )
                  )), 
         tabPanel("Volcano plot", 
@@ -10099,7 +10272,8 @@ server <- function(input, output, session) {
                                  max = 500, 
                                  value = 20, 
                                  step = 10), 
-                     actionButton("run_diff_go", "Find top GO terms")
+                     actionButton("run_diff_go", "Find top GO terms", 
+                                  class = "important-btn")
                    ), 
                    textOutput('no_feasible_go_terms_warning'), 
                    uiOutput('diff_go_sel_res_ui')
@@ -10213,7 +10387,8 @@ server <- function(input, output, session) {
     } else if (input$diff_fc_from == input$diff_fc_to) {
       p("Selected groups cannot be the same group. Please select 2 different groups. ")
     } else {
-      actionButton("diff_volcano_run_button", "Make volcano plot")
+      actionButton("diff_volcano_run_button", "Make volcano plot", 
+                   class = "important-btn")
     }
   })
   
@@ -10266,10 +10441,12 @@ server <- function(input, output, session) {
                   title = paste0("Each data point in the plot refers to a genomic bin. The plot shows the -log<sub>10</sub>", input$diff_volcano_y, " plotted against log<sub>2</sub> fold change"), 
                   placement = "top", 
                   options = list(container = "body")),
-        actionButton("diff_volcano_plot_download", "Download plot"),
+        actionButton("diff_volcano_plot_download", "Download plot", 
+                     class = "regular-btn"),
         hr(), 
         h4("Volcano plot brushed genomic bins"),
-        downloadButton("diff_volcano_plot_brushed_download", "Download brushed points table"), 
+        downloadButton("diff_volcano_plot_brushed_download", "Download brushed points table", 
+                       class = "regular-btn"), 
         DT::dataTableOutput("diff_volcano_plot_brushed")
       )
     }
@@ -10408,7 +10585,7 @@ server <- function(input, output, session) {
     } else if (input$diff_go_fc_from == input$diff_go_fc_to) {
       p("Selected groups cannot be the same group. Please select 2 different groups. ")
     } else {
-      actionButton("diff_go_fc_confirm_groups", "Confirm groups")
+      actionButton("diff_go_fc_confirm_groups", "Confirm groups", class = "important-btn")
     }
   })
   
@@ -10567,7 +10744,8 @@ server <- function(input, output, session) {
         inputId = "diff_enrichr_link", 
         label = "Go to Enrichr", 
         onclick = "window.open('https://maayanlab.cloud/Enrichr/')", 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
       rclipButton(
@@ -10575,10 +10753,13 @@ server <- function(input, output, session) {
         label = "Copy significant genes", 
         clipText = sig_genes_text, 
         icon = icon("clipboard"), 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(), 
-      downloadButton("diff_go_ext_genes_txt_download", "Download significant genes text file", style = "width: 100%; border: 1px solid white;")
+      downloadButton("diff_go_ext_genes_txt_download", "Download significant genes text file", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn")
     )
   })
   
@@ -10599,7 +10780,8 @@ server <- function(input, output, session) {
         inputId = "diff_great_link", 
         label = "Go to GREAT", 
         onclick = "window.open('https://great.stanford.edu/great/public/html/')", 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(),
       rclipButton(
@@ -10607,10 +10789,13 @@ server <- function(input, output, session) {
         label = "Copy significant bins BED", 
         clipText = clip_bed, 
         icon = icon("clipboard"), 
-        style = "width: 100%; border: 1px solid white;"
+        style = "width: 100%; border: 1px solid white;", 
+        class = "regular-btn"
       ), 
       br(), 
-      downloadButton("diff_go_ext_bed_download", "Download significant bins BED", style = "width: 100%; border: 1px solid white;")
+      downloadButton("diff_go_ext_bed_download", "Download significant bins BED", 
+                     style = "width: 100%; border: 1px solid white;", 
+                     class = "regular-btn")
     )
   })
   
@@ -10640,7 +10825,8 @@ server <- function(input, output, session) {
     if (input$diff_go_show_sig_bins_table) {
       tagList(
         h4("Significant genomic bins and their nearest genes table"),
-        downloadButton('diff_go_sig_bins_table_download', "Download significant bins and nearest genes table"),
+        downloadButton('diff_go_sig_bins_table_download', "Download significant bins and nearest genes table", 
+                       class = "regular-btn"),
         DT::dataTableOutput('diff_go_sig_bins_table')
       )
     }
@@ -10803,7 +10989,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         br(),
-        downloadButton('diff_go_table_download', "Download top GO terms table"),
+        downloadButton('diff_go_table_download', "Download top GO terms table", 
+                       class = "regular-btn"),
         DT::dataTableOutput("diff_go_table")
       )
     } else if (input$diff_go_sel_res == 'GO terms p-value graph') {
@@ -11023,7 +11210,8 @@ server <- function(input, output, session) {
                          html = TRUE)
         ),
         plotOutput("diff_go_barplot"), 
-        actionButton("diff_go_barplot_download", "Download plot")
+        actionButton("diff_go_barplot_download", "Download plot", 
+                     class = "regular-btn")
       )
     }
   })
@@ -11161,11 +11349,13 @@ server <- function(input, output, session) {
           "Upload txt file indicating sort order", 
           accept = "text/plain"
         ),
-        actionButton("submit_diff_go_barplot_custom_sort", "Confirm order"), 
+        actionButton("submit_diff_go_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("diff_go_barplot_custom_sort_submission_text")
       )
     } else if (input$diff_go_barplot_custom_sort_method == "Drag to sort") {
-      actionButton("diff_go_barplot_custom_sort_drag_button", "Sort samples")
+      actionButton("diff_go_barplot_custom_sort_drag_button", "Sort samples", 
+                   class = "regular-btn")
     }
   })
   
@@ -11205,7 +11395,8 @@ server <- function(input, output, session) {
     showModal(
       modalDialog(
         samples_rank_list,
-        actionButton("submit_diff_go_barplot_custom_sort", "Confirm order"), 
+        actionButton("submit_diff_go_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("diff_go_barplot_custom_sort_submission_text"),
         size = 'l',
         easyClose = TRUE
@@ -11500,7 +11691,8 @@ server <- function(input, output, session) {
                                                                                escape = FALSE))
     showModal(modalDialog(
       tagList(
-        downloadButton("go_genes_download", "Download significant genes"),
+        downloadButton("go_genes_download", "Download significant genes", 
+                       class = "regular-btn"),
         DT::dataTableOutput("diff_go_graph_pt_details_table")
       ), 
       easyClose = TRUE
@@ -11601,7 +11793,8 @@ server <- function(input, output, session) {
                                                                                  escape = FALSE))
       showModal(modalDialog(
         tagList(
-          downloadButton("go_genes_download", "Download significant genes"),
+          downloadButton("go_genes_download", "Download significant genes", 
+                         class = "regular-btn"),
           DT::dataTableOutput("diff_go_graph_pt_details_table")
         ), 
         easyClose = TRUE
@@ -11738,7 +11931,8 @@ server <- function(input, output, session) {
             actionButton(
               "gtex_tissue_table_sel_all", 
               "Select all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           ), 
           column(
@@ -11746,13 +11940,15 @@ server <- function(input, output, session) {
             actionButton(
               "gtex_tissue_table_sel_none", 
               "Deselect all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           )
         ),
         dataTableOutput("gtex_tissue_table"), 
         textOutput("gtex_tissue_sel_warning"),
-        actionButton("update_gtex_tissue_sel", "Confirm selection"),
+        actionButton("update_gtex_tissue_sel", "Confirm selection", 
+                     class = "regular-btn"),
         modalButton("Cancel"),
         size = "l", 
         footer = NULL
@@ -11824,7 +12020,8 @@ server <- function(input, output, session) {
             actionButton(
               "gtex_trait_table_sel_all", 
               "Select all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           ), 
           column(
@@ -11832,13 +12029,15 @@ server <- function(input, output, session) {
             actionButton(
               "gtex_trait_table_sel_none", 
               "Deselect all", 
-              width = "100%"
+              width = "100%", 
+              class = "regular-btn"
             )
           )
         ),
         dataTableOutput("gtex_trait_table"), 
         textOutput("gtex_trait_sel_warning"),
-        actionButton("update_gtex_trait_sel", "Confirm selection"),
+        actionButton("update_gtex_trait_sel", "Confirm selection", 
+                     class = "regular-btn"),
         modalButton("Cancel"),
         size = "l", 
         footer = NULL
@@ -11994,7 +12193,9 @@ server <- function(input, output, session) {
           ),
           actionButton(
             "show_disease_snp_table", 
-            "Show disease associated SNPs table"
+            "Show disease associated SNPs table", 
+            style = "width:100%;", 
+            class = "regular-btn"
           ), 
           shinyWidgets::sliderTextInput(
             "disease_snp_ext", 
@@ -12003,11 +12204,13 @@ server <- function(input, output, session) {
             selected = 500
           ),
           textOutput("disease_snp_nbins_msg"),
-          wellPanel(
-            p("You can include up to 10,000 bins in your SNP windows on server. You can also run this app from local R session to lift this limit.")
-          ),
-          actionButton("show_disease_snp_bins_table", "Show table of genomic bins covered by SNP windows"),
-          downloadButton("disease_snp_bins_download", "Download BED file of genomic bins covered by SNP windows"), 
+          uiOutput("disease_nbins_server_warning"),
+          actionButton("show_disease_snp_bins_table", "Show table of genomic bins covered by SNP windows", 
+                       style = "width:100%;", 
+                       class = "regular-btn"),
+          downloadButton("disease_snp_bins_download", "Download BED file of genomic bins covered by SNP windows", 
+                         style = "width:100%;", 
+                         class = "regular-btn"), 
           uiOutput("disease_run_analysis_ui")
         ), 
         mainPanel(
@@ -12015,6 +12218,12 @@ server <- function(input, output, session) {
         )
       )
     }
+  })
+  
+  output$disease_nbins_server_warning <- renderUI({
+    p("You can include up to 10,000 bins in your SNP windows on server. You can 
+      also run this app from local R session to lift this limit.", 
+      style = "color:red;")
   })
   
   # Server-side selectize for disease_sel
@@ -12045,9 +12254,11 @@ server <- function(input, output, session) {
                                                     selection = "multiple")
     showModal(
       modalDialog(
-        downloadButton("disease_snp_table_download", "Download table"),
+        downloadButton("disease_snp_table_download", "Download table", 
+                       class = "regular-btn"),
         DT::dataTableOutput("disease_snp_table"), 
-        actionButton("submit_disease_snp_sel", "Confirm SNP subset"),
+        actionButton("submit_disease_snp_sel", "Confirm SNP subset", 
+                     class = "regular-btn"),
         textOutput("disease_snp_sel_submission_text"),
         size = 'l',
         easyClose = TRUE
@@ -12124,7 +12335,8 @@ server <- function(input, output, session) {
                                                           selection = "none")
     showModal(
       modalDialog(
-        downloadButton("disease_snp_nbins_table_download", "Download table"),
+        downloadButton("disease_snp_nbins_table_download", "Download table", 
+                       class = "regular-btn"),
         DT::dataTableOutput("disease_snp_nbins_table"), 
         size = 'l',
         easyClose = TRUE
@@ -12163,11 +12375,16 @@ server <- function(input, output, session) {
   # Render UI panel for disease run analysis button
   output$disease_run_analysis_ui <- renderUI({
     if (length(disease_gbins()) == 0) {
-      p("There are no genomic bins in the SNP window. Please use a larger SNP window extension. ")
+      p("There are no genomic bins in the SNP window. Please select more disease/trait 
+        or use a larger SNP window extension. ", style = "color:red;")
     } else if ((length(disease_gbins()) > 10000) && (Sys.getenv('SHINY_PORT') != "")) {
-      p("You have selected too many bins. You can include up to 10,000 bins in your SNP windows on server. You can also run this app from local R session to lift this limit.")
+      p("You have selected too many bins. You can include up to 10,000 
+        bins in your SNP windows on server. You can also run this app from local 
+        R session to lift this limit.", style = "color:red;")
     } else {
-      actionButton("disease_run_analysis", "Run disease SNP analysis")
+      actionButton("disease_run_analysis", "Run disease SNP analysis", 
+                   style = "width:100%; border: 1px solid white;",
+                   class = "important-btn")
     }
   })
   
@@ -12281,7 +12498,8 @@ server <- function(input, output, session) {
           tabsetPanel(
             tabPanel(
               title = "Result table", 
-              downloadButton("download_disease_single_res", "Download result table"),
+              downloadButton("download_disease_single_res", "Download result table", 
+                             class = "regular-btn"),
               DT::dataTableOutput("disease_single_res_table")
             ), 
             tabPanel(
@@ -12323,10 +12541,12 @@ server <- function(input, output, session) {
             tabPanel(
               title = "Result table", 
               p("Mean sample disease/trait predicted accessibility table"),
-              downloadButton("download_disease_res_mean", "Download mean table"),
+              downloadButton("download_disease_res_mean", "Download mean table", 
+                             class = "regular-btn"),
               DT::dataTableOutput("disease_res_mean_table"),
               p("Normalized mean sample disease/trait predicted accessibility table"),
-              downloadButton("download_disease_res_normalized_mean", "Download normalized mean table"),
+              downloadButton("download_disease_res_normalized_mean", "Download normalized mean table", 
+                             class = "regular-btn"),
               DT::dataTableOutput("disease_res_normalized_mean_table")
             ), 
             tabPanel(
@@ -12379,11 +12599,13 @@ server <- function(input, output, session) {
           "Upload txt file indicating sort order", 
           accept = "text/plain"
         ),
-        actionButton("submit_disease_barplot_custom_sort", "Confirm order"), 
+        actionButton("submit_disease_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("disease_barplot_custom_sort_submission_text")
       )
     } else if (input$disease_barplot_custom_sort_method == "Drag to sort") {
-      actionButton("disease_barplot_custom_sort_drag_button", "Sort samples")
+      actionButton("disease_barplot_custom_sort_drag_button", "Sort samples", 
+                   class = "regular-btn")
     }
   })
   
@@ -12423,7 +12645,8 @@ server <- function(input, output, session) {
     showModal(
       modalDialog(
         samples_rank_list,
-        actionButton("submit_disease_barplot_custom_sort", "Confirm order"), 
+        actionButton("submit_disease_barplot_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("disease_barplot_custom_sort_submission_text"),
         size = 'l',
         easyClose = TRUE
@@ -12585,9 +12808,11 @@ server <- function(input, output, session) {
                           "Decreasing variance", 
                           "Genomic position")
             ), 
-            actionButton("disease_show_interactive_gbins_heatmap", "Show interactive heat map"),
+            actionButton("disease_show_interactive_gbins_heatmap", "Show interactive heat map", 
+                         class = "regular-btn"),
             plotOutput("disease_gbins_heat_map"), 
-            actionButton("disease_gbins_heat_map_download", "Download plot")
+            actionButton("disease_gbins_heat_map_download", "Download plot", 
+                         class = "regular-btn")
           )
         }
       } else {
@@ -12619,9 +12844,11 @@ server <- function(input, output, session) {
               uiOutput("disease_heatmap_sort_details_ui")
             )
           ), 
-          actionButton("disease_show_interactive_heatmap", "Show interactive heat map"),
+          actionButton("disease_show_interactive_heatmap", "Show interactive heat map", 
+                       class = "regular-btn"),
           plotOutput("disease_heat_map"), 
-          actionButton("disease_heat_map_download", "Download plot")
+          actionButton("disease_heat_map_download", "Download plot", 
+                       class = "regular-btn")
         )
       }
     }
@@ -12667,11 +12894,13 @@ server <- function(input, output, session) {
           "Upload txt file indicating sort order", 
           accept = "text/plain"
         ),
-        actionButton("submit_disease_heatmap_custom_sort", "Confirm order"), 
+        actionButton("submit_disease_heatmap_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("disease_heatmap_custom_sort_submission_text")
       )
     } else if (input$disease_heatmap_custom_sort_method == "Drag to sort") {
-      actionButton("disease_heatmap_custom_sort_drag_button", "Sort samples")
+      actionButton("disease_heatmap_custom_sort_drag_button", "Sort samples", 
+                   class = "regular-btn")
     }
   })
   
@@ -12711,7 +12940,8 @@ server <- function(input, output, session) {
     showModal(
       modalDialog(
         samples_rank_list,
-        actionButton("submit_disease_heatmap_custom_sort", "Confirm order"), 
+        actionButton("submit_disease_heatmap_custom_sort", "Confirm order", 
+                     class = "regular-btn"), 
         textOutput("disease_heatmap_custom_sort_submission_text"),
         size = 'l',
         easyClose = TRUE
@@ -12877,6 +13107,526 @@ server <- function(input, output, session) {
   # Interactive heat map
   observeEvent(input$disease_show_interactive_heatmap, {
     InteractiveComplexHeatmapModal(input, output, session, disease_heat_map())
+  })
+  
+  # Tutorial page
+  output$tut_page_ui <- renderUI({
+    if (input$tut_page_sel == "input_sel_tut") {
+      uiOutput("tut_page_input_sel")
+    } else if (input$tut_page_sel == "pca_pt_tut") {
+      uiOutput("tut_page_pca_pt")
+    } else if (input$tut_page_sel == "diff_group_tut") {
+      uiOutput("tut_page_group_diff")
+    } else if (input$tut_page_sel == "disease_snp_tut") {
+      uiOutput("tut_page_disease_snp")
+    } else if (input$tut_page_sel == "gtex_snp_tut") {
+      uiOutput("tut_page_gtex_snp")
+    }
+  })
+  
+  # Input selection tutorial
+  output$tut_page_input_sel <- renderUI({
+    sidebarLayout(
+      sidebarPanel(
+        h3("Contents"), 
+        hr(),
+        a(href="#input_sel_sample_sel", class="content_link", h4("Sample selection")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#input_sel_sample_sel_db", class="content_link", "Select from database"), 
+          br(),
+          a(href="#input_sel_sample_sel_loc", class="content_link", "Select from local path"), 
+          br(),
+          a(href="#input_sel_sample_sel_manage", class="content_link", "Manage current selection"), 
+        ), 
+        a(href="#input_sel_bin_sel", class="content_link", h4("Genomic ranges selection")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#input_sel_bin_sel_default", class="content_link", "Default selection"), 
+          br(),
+          a(href="#input_sel_bin_sel_manual", class="content_link", "Manual selection"), 
+          br(),
+          a(href="#input_sel_bin_sel_bed", class="content_link", "BED input selection"), 
+          br(), 
+          a(href="#input_sel_bin_sel_restriction", class="content_link", "Online server restrictions")
+        ),
+      ), 
+      mainPanel(
+        a(name = "input_sel_sample_sel"), 
+        h2("Sample Selection"), 
+        br(),
+        
+        a(name = "input_sel_sample_sel_db"),
+        h3("Select from database"),
+        br(),
+        
+        a(name = "input_sel_sample_sel_loc"),
+        h3("Select from local path"),
+        br(),
+        
+        a(name = "input_sel_sample_sel_manage"),
+        h3("Manage current selection"),
+        br(),
+        
+        hr(), 
+        
+        a(name = "input_sel_bin_sel"), 
+        h2("Genomic ranges selection"), 
+        br(),
+        
+        a(name = "input_sel_bin_sel_default"),
+        h3("Default selection"),
+        br(),
+        
+        a(name = "input_sel_bin_sel_manual"),
+        h3("Manual selection"),
+        br(),
+        
+        a(name = "input_sel_bin_sel_bed"),
+        h3("BED input selection"),
+        br(),
+        
+        hr(), 
+        
+        a(name = "input_sel_bin_sel_restriction"),
+        h2("Online server restrictions"),
+        br(),
+      )
+    )
+  })
+  
+  # PCA Pseudotime analysis tutorial
+  output$tut_page_pca_pt <- renderUI({
+    sidebarLayout(
+      sidebarPanel(
+        h3("Contents"), 
+        hr(),
+        a(href="#pca_pt_req", class="content_link", h4("Before analysis")), 
+        a(href="#pca_pt_hypervar", class="content_link", h4("1 Hypervariance bins selection")), 
+        a(href="#pca_pt_pca", class="content_link", h4("2 Perform PCA")), 
+        a(href="#pca_pt_pt", class="content_link", h4("3 Pseudo-time analysis")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#pca_pt_pt_param", class="content_link", "3.1 Choose parameters"), 
+          br(),
+          a(href="#pca_pt_pt_traj", class="content_link", "3.2 View trajectory"), 
+          br(),
+          a(href="#pca_pt_pt_chracc_along", class="content_link", "3.3 Accessibility along pseudo-time"), 
+          div(
+            style = "margin-left:20px", 
+            a(href="#pca_pt_pt_chracc_along_gbin_clu", class="content_link", 
+              "3.3.1 Genomic bin clusters accessibility along pseudo-time"), 
+            br(),
+            a(href="#pca_pt_pt_chracc_along_gbin", class="content_link", 
+              "3.3.2 Individual bins accessibility along pseudo-time"), 
+            br(),
+            a(href="#pca_pt_pt_chracc_along_gene", class="content_link", 
+              "3.3.3 Gene average accessibility along pseudo-time")
+          ), 
+          a(href="#pca_pt_pt_expr_along", class="content_link", "3.4 Expression along pseudo-time"), 
+          div(
+            style = "margin-left:20px", 
+            a(href="#pca_pt_pt_expr_along_gbin_clu", class="content_link", 
+              "3.4.1 Genomic bin clusters expression along pseudo-time"), 
+            br(),
+            a(href="#pca_pt_pt_expr_along_gbin", class="content_link", 
+              "3.4.2 Individual bins expression along pseudo-time"), 
+            br(),
+            a(href="#pca_pt_pt_expr_along_gene", class="content_link", 
+              "3.4.3 Gene average expression along pseudo-time")
+          ), 
+        ), 
+        a(href="#pca_pt_diff", class="content_link", h4("4 Differential test along pseudo-time")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#pca_pt_diff_subject", class="content_link", "4.1 Select test subject"), 
+          br(),
+          a(href="#pca_pt_diff_summary", class="content_link", "4.2 Test summary")
+        ), 
+        a(href="#pca_pt_go", class="content_link", h4("5 GO analysis on significant hits")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#pca_pt_go_map", class="content_link", "5.1 Map significant hits to genes"), 
+          div(
+            style = "margin-left:20px", 
+            a(href="#pca_pt_go_map_gbin_clu", class="content_link", 
+              "5.1.1 Map significant bin clusters"), 
+            br(),
+            a(href="#pca_pt_go_map_gbin", class="content_link", 
+              "5.1.2 Map significant bins"), 
+            br(),
+            a(href="#pca_pt_go_map_gene", class="content_link", 
+              "5.1.3 Map genes")
+          ), 
+          a(href="#pca_pt_go_options", class="content_link", "5.2 GO analysis options"),
+          br(),
+          a(href="#pca_pt_go_res", class="content_link", "5.3 Result tables and graphs")
+        )
+      ), 
+      mainPanel(
+        a(name = "pca_pt_req"), 
+        h2("Before analysis"), 
+        div(
+          HTML("At least <b>2 samples and 2 genomic bins</b> need to be selected before you 
+          perform PCA and pseudo-temporal analysis. For instructions on how to
+          select input samples and genomic bins, see the "), 
+          actionLink("input_sel_tut_link", "Input Selection Tutorial"), 
+          HTML(". ")
+        ),
+        br(), 
+        
+        hr(),
+        
+        a(name = "pca_pt_hypervar"),
+        h2("1 Hypervariance bins selection"),
+        p("Select the number of top variance bins that will be used in PCA computation, 
+        The default number of top variance bins is 2000. The max limit is 10,000 in 
+          local host session and 3,000 in server session."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_hypervar.svg")
+          )
+        ),
+        br(),
+        
+        hr(),
+        
+        a(name = "pca_pt_pca"),
+        h2("2 Perform PCA"),
+        p("PCA is automatically performed on the top variance bins once you go to 
+        the Pseudo-time Analysis tab. However, you may choose to see the PCA plot 
+          alone without doing the pseudo-time analysis by choosing to display PCA plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pca.svg")
+          )
+        ),
+        br(),
+        
+        hr(),
+        
+        a(name = "pca_pt_pt"),
+        h2("3 Pseudo-time analysis"),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt.svg")
+          )
+        ),
+        br(),
+        
+        a(name = "pca_pt_pt_param"),
+        h3("3.1 Choose parameters"),
+        # tags$div(
+        #   style = "width:100%;",
+        #   div(
+        #     style = "width:75%; margin:0 auto; border:solid grey 1px;",
+        #     includeHTML("www/tut/pca_pt_pt_param.svg")
+        #   )
+        # ),
+        br(),
+        
+        a(name = "pca_pt_pt_traj"),
+        h3("3.2 View trajectory"),
+        br(),
+        
+        a(name = "pca_pt_pt_chracc_along"),
+        h3("3.3 Accessibility along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_chracc_along_gbin_clu"),
+        h4("3.3.1 Genomic bin clusters accessibility along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_chracc_along_gbin"),
+        h4("3.3.2 Individual bins accessibility along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_chracc_along_gene"),
+        h4("3.3.3 Gene average accessibility along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_expr_along"),
+        h3("3.4 Expression along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_expr_along_gbin_clu"),
+        h4("3.4.1 Genomic bin clusters expression along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_expr_along_gbin"),
+        h4("3.4.2 Individual bins expression along pseudo-time"),
+        br(),
+        
+        a(name = "pca_pt_pt_expr_along_gene"),
+        h4("3.4.3 Gene average expression along pseudo-time"),
+        br(),
+        
+        hr(), 
+        
+        a(name = "pca_pt_diff"), 
+        h2("4 Differential test along pseudo-time"), 
+        br(),
+        
+        a(name = "pca_pt_diff_subject"),
+        h3("4.1 Select test subject"),
+        br(),
+        
+        a(name = "pca_pt_diff_summary"),
+        h3("4.2 Test summary"),
+        br(),
+        
+        hr(),
+        
+        a(name = "pca_pt_go"),
+        h2("5 GO analysis on significant hits"),
+        br(),
+        
+        a(name = "pca_pt_go_map"),
+        h3("5.1 Map significant hits to genes"),
+        br(),
+        
+        a(name = "pca_pt_go_map_gbin_clu"),
+        h4("5.1.1 Map significant bin clusters"),
+        br(),
+        
+        a(name = "pca_pt_go_map_gbin"),
+        h4("5.1.2 Map significant bins"),
+        br(),
+        
+        a(name = "pca_pt_go_map_gene"),
+        h4("5.1.3 Map genes"),
+        br(),
+        
+        a(name = "pca_pt_go_options"),
+        h3("5.2 GO analysis options"),
+        br(),
+        
+        a(name = "pca_pt_go_res"),
+        h3("5.3 Result tables and graphs")
+      )
+    )
+  })
+  
+  # Group differential test tutorial
+  output$tut_page_group_diff <- renderUI({
+    sidebarLayout(
+      sidebarPanel(
+        h3("Contents"), 
+        hr(),
+        a(href="#group_diff_req", class="content_link", h4("Before analysis")), 
+        a(href="#group_diff_group", class="content_link", h4("1 Grouping samples")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#group_diff_group_kmeans", class="content_link", "1.1 Group by k-means clustering"), 
+          br(),
+          a(href="#group_diff_group_text", class="content_link", "1.2 Group by text input"), 
+          br(),
+          a(href="#group_diff_group_drag", class="content_link", "1.3 Group by drag-and-drop"), 
+          br(),
+          a(href="#group_diff_group_plotsel", class="content_link", "1.4 Group by selecting from plot"), 
+        ), 
+        a(href="#group_diff_test", class="content_link", h4("2 Differential test")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#group_diff_test_param", class="content_link", "2.1 Test parameters"), 
+          br(),
+          a(href="#group_diff_test_table", class="content_link", "2.2 Result table"), 
+          br(),
+          a(href="#group_diff_test_summary", class="content_link", "2.3 Result summary"), 
+          br(),
+          a(href="#group_diff_test_volcano", class="content_link", "2.4 Volcano plot"), 
+        ),
+        a(href="#group_diff_go", class="content_link", h4("3 GO analysis")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#group_diff_go_map", class="content_link", "3.1 Mapping significant bins to genes"), 
+          br(),
+          a(href="#group_diff_go_options", class="content_link", "3.2 Test options"), 
+          br(),
+          a(href="#group_diff_go_res", class="content_link", "3.3 Result tables and graphs"),
+        )
+      ), 
+      mainPanel(
+        a(name = "group_diff_req"), 
+        h2("Before analysis"), 
+        br(),
+        
+        hr(),
+        
+        a(name = "group_diff_group"),
+        h2("1 Grouping samples"),
+        br(),
+        
+        a(name = "group_diff_group_kmeans"),
+        h3("1.1 Group by k-means clustering"),
+        br(),
+        
+        a(name = "group_diff_group_text"),
+        h3("1.2 Group by text input"),
+        br(),
+        
+        a(name = "group_diff_group_drag"),
+        h3("1.3 Group by drag-and-drop"),
+        br(),
+        
+        a(name = "group_diff_group_plotsel"),
+        h3("1.4 Group by selecting from plot"),
+        br(),
+        
+        hr(), 
+        
+        a(name = "group_diff_test"), 
+        h2("2 Differential test"), 
+        br(),
+        
+        a(name = "group_diff_test_param"),
+        h3("2.1 Test parameters"),
+        br(),
+        
+        a(name = "group_diff_test_table"),
+        h3("2.2 Result table"),
+        br(),
+        
+        a(name = "group_diff_test_summary"),
+        h3("2.3 Result summary"),
+        br(),
+        
+        a(name = "group_diff_test_volcano"),
+        h3("2.4 Volcano plot"),
+        br(),
+        
+        hr(), 
+        
+        a(name = "group_diff_go"),
+        h2("3 GO analysis"),
+        br(),
+        
+        a(name = "group_diff_go_map"),
+        h3("3.1 Mapping significant bins to genes"),
+        br(),
+        
+        a(name = "group_diff_go_options"),
+        h3("3.2 Test options"),
+        br(),
+        
+        a(name = "group_diff_go_res"),
+        h3("3.3 Result tables and graphs"),
+        br(),
+      )
+    )
+  })
+  
+  # Disease snp tutorial
+  output$tut_page_disease_snp <- renderUI({
+    sidebarLayout(
+      sidebarPanel(
+        h3("Contents"), 
+        hr(),
+        a(href="#disease_snp_disease_sel", class="content_link", h4("1 Disease selection")), 
+        a(href="#disease_snp_subset_snp", class="content_link", h4("2 Subset SNPs")), 
+        a(href="#disease_snp_window", class="content_link", h4("3 Choose SNPs window size")), 
+        a(href="#disease_snp_res", class="content_link", h4("4 SNP analysis results")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#disease_snp_res_table", class="content_link", "4.1 Result table"), 
+          br(),
+          a(href="#disease_snp_res_barplot", class="content_link", "4.2 Result bar plot"), 
+          br(),
+          a(href="#disease_snp_res_heatmap", class="content_link", "4.3 Result heatmap"), 
+          br()
+        )
+      ), 
+      mainPanel(
+        a(name = "disease_snp_disease_sel"), 
+        h2("1 Disease selection"), 
+        br(),
+        
+        hr(), 
+        
+        a(name = "disease_snp_subset_snp"), 
+        h2("2 Subset SNPs"), 
+        br(),
+        
+        hr(), 
+        
+        a(name = "disease_snp_window"), 
+        h2("3 Choose SNPs window size"), 
+        br(),
+        
+        hr(), 
+        
+        a(name = "disease_snp_res"), 
+        h2("4 SNP analysis results"), 
+        br(),
+        
+        a(name = "disease_snp_res_table"),
+        h3("4.1 Result table"),
+        br(),
+        
+        a(name = "disease_snp_res_barplot"),
+        h3("4.2 Result bar plot"),
+        br(),
+        
+        a(name = "disease_snp_res_heatmap"),
+        h3("4.3 Result heatmap"),
+        br(),
+      )
+    )
+  })
+  
+  # GTEx snp tutorial
+  output$tut_page_gtex_snp <- renderUI({
+    sidebarLayout(
+      sidebarPanel(
+        h3("Contents"), 
+        hr(),
+        a(href="#gtex_snp_param", class="content_link", h4("1 Adjust heatmap parameters")), 
+        div(
+          style = "margin-left:20px", 
+          a(href="#gtex_snp_param_tissue", class="content_link", "1.1 Select tissues"), 
+          br(),
+          a(href="#gtex_snp_param_trait", class="content_link", "1.2 Select traits"), 
+          br(),
+          a(href="#gtex_snp_param_other", class="content_link", "1.3 Other parameters"), 
+          br()
+        ),
+        a(href="#gtex_snp_res", class="content_link", h4("2 Result heatmap"))
+      ), 
+      mainPanel(
+        a(name = "gtex_snp_param"), 
+        h2("1 Adjust heatmap parameters"), 
+        br(),
+        
+        a(name = "gtex_snp_param_tissue"), 
+        h3("1.1 Select tissues"), 
+        br(),
+        
+        a(name = "gtex_snp_param_trait"), 
+        h3("1.2 Select traits"), 
+        br(),
+        
+        a(name = "gtex_snp_param_other"), 
+        h3("1.3 Other parameters"), 
+        br(),
+        
+        hr(), 
+        
+        a(name = "gtex_snp_res"), 
+        h2("2 Result heatmap"), 
+        br(),
+      )
+    )
+  })
+  
+  # Go to input selection tutorial page on link click
+  observeEvent(input$input_sel_tut_link, {
+    updateSelectInput(inputId = "tut_page_sel", selected = "input_sel_tut")
   })
   
   # Remove temporary directory on session end
