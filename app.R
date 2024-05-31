@@ -44,11 +44,6 @@ suppressMessages(library(preprocessCore))
 suppressMessages(library(shinyFiles))
 suppressMessages(library(heatmaply))
 
-# py_modules <- c("plotly", "kaleido")
-# avail_py_modules <- sapply(py_modules, py_module_available)
-# if (! all(avail_py_modules)) py_install(py_modules[! avail_py_modules], pip = TRUE)
-# import("kaleido")
-
 #options(shiny.error = browser)
 options(timeout = 800)
 
@@ -192,8 +187,18 @@ ui <- fluidPage(
                 HTML("<h4><font color=\"grey\"><i>Analyze and visualize accessibility data with interactive or publication-ready images. </i></font></h4>")
               ),
               br(), 
-              actionButton("show_r_instructions", "Run from local R session", 
-                           class = "important-btn")
+              fluidRow(
+                column(
+                  3, 
+                  actionButton("start_exploration", "Start exploring", 
+                               width = "100%",
+                             class = "important-btn")
+                ),
+                column(
+                  3, 
+                  uiOutput("run_from_local_ui")
+                )
+              )
             )
           )
         )
@@ -999,24 +1004,12 @@ ui <- fluidPage(
                                .content_link:hover {color:#e95420;text-decoration:underline;}")),
         
         uiOutput("tut_page_ui")
-        
-        # tabsetPanel(
-        #   id = "tutorial_panels", 
-        #   tabPanel(
-        #     title = "Step-by-step tutorial", 
-        #     value = "guided_tut"
-        #   ), 
-        #   tabPanel(
-        #     title = "Video tutorial", 
-        #     value = "vid_tut", 
-        #     "Insert video demos"
-        #   )
-        # )
       ), 
       
       tabPanel(
         title = "User Manual", 
-        
+        tags$iframe(style="height:600px; width:100%", 
+                    src="http://jilab.biostat.jhsph.edu/software/PDDB/app_files/user_manual.pdf")
       ), 
       
       tabPanel(
@@ -1029,10 +1022,114 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  # Go to input selection on overview page button click
+  observeEvent(input$start_exploration, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Input Selection")
+  })
+  
+  # Button: instructions for running from local host
+  output$run_from_local_ui <- renderUI({
+    if (Sys.getenv('SHINY_PORT') != "") {
+      actionButton("show_r_instructions", "Run from local R session", 
+                   width = "100%",
+                   class = "regular-btn")
+    }
+  })
+  
+  # Modal for instructions for running from local host
+  observeEvent(input$show_r_instructions, {
+    showModal(
+      modalDialog(
+        HTML(paste0("<p>You can run the app from local R session to work with large studies 
+        and lift limits on genomic range selection. 
+                    Run the following code from R to start app from local host: </p>")), 
+        verbatimTextOutput("runapp_code"), 
+        rclipButton(
+          inputId = "runapp_code_copy", 
+          label = "Copy code", 
+          clipText = runapp_code, 
+          icon = icon("clipboard"), 
+          style = "border: 1px solid white;", 
+          class = "regular-btn"
+        ), 
+        br(), 
+        HTML(paste0("<p>There are 2 recommended options for working with large studies. 
+              <ol>
+              <li>Run app locally and read samples from database
+              <p>Run app from local host and go to <b>Input Selection</b> ", icon("arrow-right"), 
+                    " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                    " <b>Add sample by</b> ", icon("arrow-right"), 
+                    " <b>Select from database</b> to add samples from database.</p>
+              </li>
+              <li>Run app locally and read samples from local path
+              <p>Please go to <b>Prediction Download</b> ", icon("arrow-right"), 
+                    " <b>RDS download</b> to download the compressed prediction 
+                         files. Then, run this app from your <b>local host</b>, 
+                        go to <b>Input Selection</b> ", icon("arrow-right"), 
+                    " <b>Select or upload sample</b> ", icon("arrow-right"), 
+                    " <b>Add sample by</b> ", icon("arrow-right"), 
+                    " <b>Select from local path</b> to add local samples.</p>
+              </li>
+              </ol>
+              </p>")),
+        easyClose = TRUE, 
+        footer = NULL
+      )
+    )
+  })
+  
+  # Go to input selection tutorial on overview page button click
   observeEvent(input$map_input_sel, {
     updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
     updateSelectInput(inputId = "tut_page_sel", selected = "input_sel_tut")
-    # updateTabsetPanel(session, inputId = "tutorial_panels", selected = "vid_tut")
+  })
+  
+  # Go to input selection tutorial on overview page button click
+  observeEvent(input$map_download, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "input_sel_tut")
+  })
+  
+  # Go to gtex snp tutorial on overview page button click
+  observeEvent(input$map_gtex_snp, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "gtex_snp_tut")
+  })
+  
+  # Go to pca pt tutorial on overview page button click
+  observeEvent(input$map_pca_pt, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "pca_pt_tut")
+  })
+  
+  # Go to pca pt tutorial on overview page button click
+  observeEvent(input$map_pt_diff, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "pca_pt_tut")
+  })
+  
+  # Go to pca pt tutorial on overview page button click
+  observeEvent(input$map_pt_go, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "pca_pt_tut")
+  })
+  
+  # Go to group diff tutorial on overview page button click
+  observeEvent(input$map_group_diff, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "diff_group_tut")
+  })
+  
+  # Go to group diff tutorial on overview page button click
+  observeEvent(input$map_group_go, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "diff_group_tut")
+  })
+  
+  # Go to disease snp tutorial on overview page button click
+  observeEvent(input$map_disease_snp, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+    updateSelectInput(inputId = "tut_page_sel", selected = "disease_snp_tut")
   })
   
   # Which plot are we downloading
@@ -4135,12 +4232,6 @@ server <- function(input, output, session) {
                   trigger = "focus", 
                   options = list(container = "body", 
                                  html = TRUE)),
-        selectInput(
-          'pt_gbin_expr_choose_plot', 
-          label = "Choose visualization method: ", 
-          choices = c("Scatterplot", 
-                      "Heatmap")
-        ),
         wellPanel(
           fluidRow(
             column(
@@ -4160,13 +4251,19 @@ server <- function(input, output, session) {
               width = 4, 
               checkboxInput(
                 "pt_show_gene_dist_plot", 
-                "Show distribution of cluster bins distance to genes", 
+                "Show distribution of bins distance to genes", 
                 value = FALSE
               )
             )
           ),
           uiOutput("pt_gbin_ngene_msg"),
           uiOutput("pt_gbin_expr_gene_dist_plot_ui")
+        ),
+        selectInput(
+          'pt_gbin_expr_choose_plot', 
+          label = "Choose visualization method: ", 
+          choices = c("Scatterplot", 
+                      "Heatmap")
         ),
         uiOutput('pt_gbin_expr_ui')
       )
@@ -4203,7 +4300,7 @@ server <- function(input, output, session) {
               width = 4, 
               checkboxInput(
                 "pt_show_gene_expr_gene_dist_plot", 
-                "Show distribution of cluster bins distance to genes", 
+                "Show distribution of bins distance to genes", 
                 value = FALSE
               )
             )
@@ -11915,16 +12012,16 @@ server <- function(input, output, session) {
                                                                               icon = icon("info"), 
                                                                               style = "info", 
                                                                               size = "extra-small")), 
-        # bsPopover(
-        #   id = "loc_project_sel_table_info",
-        #   title = "<h4>Local project selection table</h4>",
-        #   content = do.call(paste0, 
-        #                     popover_contents$loc_project_sel_table_info),
-        #   placement = "right",
-        #   trigger = "focus",
-        #   options = list(container = "body", 
-        #                  html = TRUE)
-        # ),
+        bsPopover(
+          id = "gtex_tissue_table_info",
+          title = "<h4>Local project selection table</h4>",
+          content = do.call(paste0,
+                            popover_contents$gtex_tissue_table_info),
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body",
+                         html = TRUE)
+        ),
         fluidRow(
           column(
             3, 
@@ -12004,16 +12101,16 @@ server <- function(input, output, session) {
                                                                               icon = icon("info"), 
                                                                               style = "info", 
                                                                               size = "extra-small")), 
-        # bsPopover(
-        #   id = "loc_project_sel_table_info",
-        #   title = "<h4>Local project selection table</h4>",
-        #   content = do.call(paste0, 
-        #                     popover_contents$loc_project_sel_table_info),
-        #   placement = "right",
-        #   trigger = "focus",
-        #   options = list(container = "body", 
-        #                  html = TRUE)
-        # ),
+        bsPopover(
+          id = "gtex_trait_table_info",
+          title = "<h4>Local project selection table</h4>",
+          content = do.call(paste0,
+                            popover_contents$gtex_trait_table_info),
+          placement = "right",
+          trigger = "focus",
+          options = list(container = "body",
+                         html = TRUE)
+        ),
         fluidRow(
           column(
             3, 
@@ -12221,9 +12318,12 @@ server <- function(input, output, session) {
   })
   
   output$disease_nbins_server_warning <- renderUI({
-    p("You can include up to 10,000 bins in your SNP windows on server. You can 
+    is_local <- Sys.getenv('SHINY_PORT') == ""
+    if (! is_local) {
+      p("You can include up to 10,000 bins in your SNP windows on server. You can 
       also run this app from local R session to lift this limit.", 
       style = "color:red;")
+    }
   })
   
   # Server-side selectize for disease_sel
@@ -12497,12 +12597,31 @@ server <- function(input, output, session) {
           # For single disease/trait selection
           tabsetPanel(
             tabPanel(
+              style = "margin-bottom:50px; margin-top:50px;",
               title = "Result table", 
+              div(style = "display: inline-block;vertical-align: middle;", h4("Disease SNP accessibility table")), 
+              div(style = "display: inline-block;vertical-align: middle;", bsButton("disease_single_res_table_info", 
+                                                                                    label = "", 
+                                                                                    icon = icon("info"), 
+                                                                                    style = "info", 
+                                                                                    size = "extra-small")), 
+              bsPopover(
+                id = "disease_single_res_table_info",
+                title = "<h4>Disease SNP accessibility table</h4>",
+                content = do.call(paste0,
+                                  popover_contents$disease_single_res_table_info),
+                placement = "right",
+                trigger = "focus",
+                options = list(container = "body",
+                               html = TRUE)
+              ),
+              br(),
               downloadButton("download_disease_single_res", "Download result table", 
                              class = "regular-btn"),
               DT::dataTableOutput("disease_single_res_table")
             ), 
             tabPanel(
+              style = "margin-bottom:50px; margin-top:50px;",
               title = "Bar plot", 
               radioButtons(
                 "disease_barplot_var", 
@@ -12527,10 +12646,12 @@ server <- function(input, output, session) {
                   uiOutput("disease_barplot_sort_details_ui")
                 )
               ), 
+              h4("Disease SNPs accessibility bar plot"),
               plotlyOutput("disease_barplot"), 
               #actionButton("disease_barplot_download", "Download plot")
             ),
             tabPanel(
+              style = "margin-bottom:50px; margin-top:50px;",
               title = "Heat map", 
               uiOutput("disease_heatmap_ui")
             )
@@ -12539,17 +12660,52 @@ server <- function(input, output, session) {
           # For multiple disease/traits
           tabsetPanel(
             tabPanel(
+              style = "margin-bottom:50px; margin-top:50px;",
               title = "Result table", 
-              p("Mean sample disease/trait predicted accessibility table"),
+              div(style = "display: inline-block;vertical-align: middle;", h4("Disease SNP mean accessibility table")), 
+              div(style = "display: inline-block;vertical-align: middle;", bsButton("disease_multi_res_table_info", 
+                                                                                    label = "", 
+                                                                                    icon = icon("info"), 
+                                                                                    style = "info", 
+                                                                                    size = "extra-small")), 
+              bsPopover(
+                id = "disease_multi_res_table_info",
+                title = "<h4>Disease SNP mean accessibility table</h4>",
+                content = do.call(paste0,
+                                  popover_contents$disease_multi_res_table_info),
+                placement = "right",
+                trigger = "focus",
+                options = list(container = "body",
+                               html = TRUE)
+              ),
+              br(),
               downloadButton("download_disease_res_mean", "Download mean table", 
                              class = "regular-btn"),
               DT::dataTableOutput("disease_res_mean_table"),
-              p("Normalized mean sample disease/trait predicted accessibility table"),
+              hr(),
+              div(style = "display: inline-block;vertical-align: middle;", h4("Disease SNP normalized mean accessibility table")), 
+              div(style = "display: inline-block;vertical-align: middle;", bsButton("disease_multi_norm_res_table_info", 
+                                                                                    label = "", 
+                                                                                    icon = icon("info"), 
+                                                                                    style = "info", 
+                                                                                    size = "extra-small")), 
+              bsPopover(
+                id = "disease_multi_norm_res_table_info",
+                title = "<h4>Disease SNP normalized mean accessibility table</h4>",
+                content = do.call(paste0,
+                                  popover_contents$disease_multi_norm_res_table_info),
+                placement = "right",
+                trigger = "focus",
+                options = list(container = "body",
+                               html = TRUE)
+              ),
+              br(),
               downloadButton("download_disease_res_normalized_mean", "Download normalized mean table", 
                              class = "regular-btn"),
               DT::dataTableOutput("disease_res_normalized_mean_table")
             ), 
             tabPanel(
+              style = "margin-bottom:50px; margin-top:50px;",
               title = "Disease/trait heat map", 
               radioButtons(
                 "disease_heatmap_var", 
@@ -12787,12 +12943,6 @@ server <- function(input, output, session) {
           p("There must be at least 2 genomic bins covered by SNP windows to display a heatmap. ")
         } else {
           tagList(
-            # checkboxInput(
-            #   "disease_heatmap_snp_subset", 
-            #   label = "Show heatmap for a specific SNP window",
-            #   value = FALSE
-            # ),
-            # uiOutput("disease_heatmap_snp_subset_ui"),
             sliderInput(
               "disease_heatmap_top_var", 
               label = "Number of top variance rows to include in heat map", 
@@ -12808,6 +12958,7 @@ server <- function(input, output, session) {
                           "Decreasing variance", 
                           "Genomic position")
             ), 
+            h4("Sample vs. disease genomic bins heatmap"),
             actionButton("disease_show_interactive_gbins_heatmap", "Show interactive heat map", 
                          class = "regular-btn"),
             plotOutput("disease_gbins_heat_map"), 
@@ -12844,6 +12995,7 @@ server <- function(input, output, session) {
               uiOutput("disease_heatmap_sort_details_ui")
             )
           ), 
+          h4("Sample vs. trait heatmap"),
           actionButton("disease_show_interactive_heatmap", "Show interactive heat map", 
                        class = "regular-btn"),
           plotOutput("disease_heat_map"), 
@@ -13011,10 +13163,10 @@ server <- function(input, output, session) {
     if (! is.null(input$disease_heatmap_snp_sel)) {
       snp_gbins_info <- disease_gbins_table()[as.character(disease_gbins_table()$snp_id) == input$disease_heatmap_snp_sel, ]
       sel_gbins <- paste0(snp_gbins_info$chromosome, ' (', snp_gbins_info$covered_bin_start, '-', snp_gbins_info$covered_bin_end, ')')
-      filtered_pred_mat <- filtered_pred_mat[sel_gbins, ]
+      filtered_pred_mat <- filtered_pred_mat[sel_gbins, ,drop=F]
     }
-    n_top_var <- min(input$disease_heatmap_top_var, nrow(filtered_pred_mat))
     disease_pred_hypervar <- hypervar_bulk(filtered_pred_mat)
+    n_top_var <- min(input$disease_heatmap_top_var, nrow(disease_pred_hypervar))
     top_var_idx <- base::sort(disease_pred_hypervar$hypervar, 
                               decreasing=TRUE, 
                               index.return=TRUE)$ix[1:n_top_var]
@@ -13144,53 +13296,377 @@ server <- function(input, output, session) {
           style = "margin-left:20px", 
           a(href="#input_sel_bin_sel_default", class="content_link", "Default selection"), 
           br(),
+          a(href="#input_sel_bin_sel_all", class="content_link", "Full genome selection"), 
+          br(),
           a(href="#input_sel_bin_sel_manual", class="content_link", "Manual selection"), 
           br(),
-          a(href="#input_sel_bin_sel_bed", class="content_link", "BED input selection"), 
-          br(), 
-          a(href="#input_sel_bin_sel_restriction", class="content_link", "Online server restrictions")
+          a(href="#input_sel_bin_sel_bed", class="content_link", "BED input selection")
+        ),
+        a(href="#input_sel_restriction", class="content_link", h4("Online server restrictions")),
+        a(href="#pred_download", class="content_link", h4("Prediction download")),
+        div(
+          style = "margin-left:20px", 
+          a(href="#pred_download_rds", class="content_link", "RDS download"), 
+          br(),
+          a(href="#pred_download_bw_ucsc", class="content_link", "BigWig and UCSC Genome Browser session file download"), 
+          br(),
+          a(href="#pred_download_txt", class="content_link", "Text download")
         ),
       ), 
       mainPanel(
         a(name = "input_sel_sample_sel"), 
         h2("Sample Selection"), 
+        p("Go to Input Selection from navigation bar, and go to Select or upload sample tab. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_sample_sel_db"),
         h3("Select from database"),
+        p("To select sample from database, select Select from prediction database from 
+          the drop-down in the sidebar. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db1.svg")
+          )
+        ),
+        p("You need to first select projects from the database, and then select the samples 
+          that you want to use as input to the prediction model. To select projects, 
+          go to Step 1: Project Selection tab. "),
+        p("You can either select projects from a table or input a text listing your interested 
+          projects. To select projects from table, use Select from table as your project 
+          selection method, and then click on rows below to select projects from the table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db2.svg")
+          )
+        ),
+        p("Another way to select projects is via text input. Use Select with text input 
+        as your project selection method. Either paste or upload the 
+          project list in the specified format, and click on Confirm project selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db3.svg")
+          )
+        ),
+        p("Once you have selected your projects, go to Step 2: Sample Selection to 
+          now select samples from the selected projects. "),
+        p("There are again two ways to select samples. The first method is to select from 
+          table. Click on the table to select samples. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db4.svg")
+          )
+        ),
+        p("Click on Confirm sample selection to add these samples to your current selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db5.svg")
+          )
+        ),
+        p("To select samples with text input, use Select with text input. Then, input 
+          sample selection text in the specified format and click on Confirm sample selection 
+          to add these samples to current selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_db6.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_sample_sel_loc"),
         h3("Select from local path"),
+        p("When running this app from local host, you can also choose to select projects and 
+          samples from a local path. To do this, select Select from local path from 
+          drop-down in sidebar, and click on Select a local directory button. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc1.svg")
+          )
+        ),
+        p("In the modal pop-up, first choose a root directory to select from. Then, 
+          from the children directories shown in the left panel, find and choose the 
+          directory containing the project prediction RDS files. Finally, click on 
+          Select to select this directory. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc2.svg")
+          )
+        ),
+        p("All RDS files from the selected directory with a valid project name will be 
+          displayed in the Local project selection table. Select the projects you want, 
+          and click on Check project RDS file. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc3.svg")
+          )
+        ),
+        p("Click on Okay to allow the app to read and check the selected RDS files. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc4.svg")
+          )
+        ),
+        p("Now the app will read and check each RDS file. After the file checking is complete, 
+          go to Step 2: Sample Selection tab, where you can select any samples from 
+          valid project files. "),
+        p("To select samples from table, choose Select from table. All samples from valid project files 
+          will show up in the table below. Select the desired samples from the table, and click on 
+          Confirm sample selection to add these samples to your current selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc5.svg")
+          )
+        ),
+        p("To select samples with text, choose Select with text input. Input the text in 
+          specified format, and click on Confirm sample selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_loc6.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_sample_sel_manage"),
         h3("Manage current selection"),
+        p("You can view and manage your current selection by clicking on Show selected 
+          samples table button from the left sidebar. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_manage1.svg")
+          )
+        ),
+        p("A pop-up modal will show, and you can view information about all currently selected 
+          samples in a table. You can also select samples from table and remove them from selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_sample_sel_manage2.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "input_sel_bin_sel"), 
         h2("Genomic ranges selection"), 
+        p("To select genomic ranges, go to the Sample range selection tab. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_bin_sel.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_bin_sel_default"),
         h3("Default selection"),
+        p("The default genomic range is all bins in chromosome 1. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_bin_sel_default.svg")
+          )
+        ),
+        br(),
+        
+        a(name = "input_sel_bin_sel_all"),
+        h3("Full genome selection"),
+        p("The default genomic range is all bins in chromosome 1. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_bin_sel_all.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_bin_sel_manual"),
         h3("Manual selection"),
+        p("For manual selection, select Manual from drop-down, and select chromosomes 
+          by choosing in the side panel. Then, for each selected chromosome, you may 
+          select a custom region of the chromosome using the sliders on the right or 
+          entering the start and end positions of the desired genomic regions. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_bin_sel_manual.svg")
+          )
+        ),
         br(),
         
         a(name = "input_sel_bin_sel_bed"),
         h3("BED input selection"),
+        p("You can also upload a BED file to indicate desired genomic region. Select BED input 
+          from drop-down and upload your BED file. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_bin_sel_bed.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
-        a(name = "input_sel_bin_sel_restriction"),
+        a(name = "input_sel_restriction"),
         h2("Online server restrictions"),
+        p("There are many restrictions to online server sessions due to RAM limitations 
+          of shinyapps.io. Namely, you can only select up to 200 samples coming from 
+          moderate size studies (these studies must contain no more than 200 samples in 
+          total); you can only select up to 120,000 genomic bins; you can select up 
+          to 3,000 top variance bins for PCA computation; and you may select up to 
+          10,000 bins for disease SNP analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_restriction1.svg")
+          )
+        ),
         br(),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_restriction2.svg")
+          )
+        ),
+        br(),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_restriction3.svg")
+          )
+        ),
+        br(),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/input_sel_restriction4.svg")
+          )
+        ),
+        br(),
+        
+        hr(), 
+        
+        a(name = "pred_download"),
+        h2("Prediction download"),
+        p("You may download predictions in RDS, BigWig, and txt formats, and you can 
+          visualize selected predictions on UCSC Genome Browser by downloading the 
+          session files. "),
+        p("While text download has its own page and requires input samples and genomic 
+          range selection prior to download, the other prediction download functionalities 
+          are integrated into the Input Selection section. "),
+        br(),
+        
+        a(name = "pred_download_rds"),
+        h3("RDS download"),
+        p("RDS format is intended for project prediction download, where all predictions 
+          for a project are stored in a numeric matrix written to an RDS file. "),
+        p("To download RDS files, go to Input Selection, go to Select or upload samples tab, and choose Select 
+          from database predictions. Under Step 1: Project Selection, choose Select from table."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pred_download_rds1.svg")
+          )
+        ),
+        p("Select the projects that you want to download from the table, and click 
+          on Download RDS file(s). "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pred_download_rds2.svg")
+          )
+        ),
+        br(),
+        
+        a(name = "pred_download_bw_ucsc"),
+        h3("BigWig and UCSC Genome Browser session file download"),
+        p("A BigWig file is used for visualization of prediction for an individual sample. 
+          An UCSC Genome Browser session file can be used to display a session on 
+          UCSC Genome Browser, showing prediction for multiple samples at the same time. "),
+        p("To download BigWig files, you need to go to the panel for selecting samples from 
+          prediction database and go to Step 2: Sample Selection. Choose Select from table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pred_download_bw_ucsc1.svg")
+          )
+        ),
+        p("Select samples from table, and use the buttons on the bottom of the page to download 
+          BigWig file(s) and UCSC Genome Browser session file. "), 
+        p("The instructions for uploading session files on UCSC Genome Browser can be 
+          viewed by clicking on the information button next to the Download session file button. 
+          Please note that including more samples (tracks) in a single session may cause the Genome 
+          Browser page to load slower. Please try to keep the number of samples reasonable. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pred_download_bw_ucsc2.svg")
+          )
+        ),
+        br(),
+        
+        a(name = "pred_download_txt"),
+        h3("Text download"),
+        p("To download prediction text file, you are required to select at least 1 sample 
+          and at least 1 genomic bin first. Go to txt download under Prediction Download 
+          and click the download buttons to either download a single txt file containing 
+          all predictions or a zip file containing predictions for each sample in 
+          separate text files. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pred_download_txt.svg")
+          )
+        ),
+        br()
       )
     )
   })
@@ -13241,7 +13717,9 @@ server <- function(input, output, session) {
           style = "margin-left:20px", 
           a(href="#pca_pt_diff_subject", class="content_link", "4.1 Select test subject"), 
           br(),
-          a(href="#pca_pt_diff_summary", class="content_link", "4.2 Test summary")
+          a(href="#pca_pt_diff_table", class="content_link", "4.2 Test result table"), 
+          br(),
+          a(href="#pca_pt_diff_summary", class="content_link", "4.3 Test summary")
         ), 
         a(href="#pca_pt_go", class="content_link", h4("5 GO analysis on significant hits")), 
         div(
@@ -13311,6 +13789,7 @@ server <- function(input, output, session) {
         
         a(name = "pca_pt_pt"),
         h2("3 Pseudo-time analysis"),
+        p("Go to the Pseudo-time Analysis tab."),
         tags$div(
           style = "width:100%;",
           div(
@@ -13322,93 +13801,478 @@ server <- function(input, output, session) {
         
         a(name = "pca_pt_pt_param"),
         h3("3.1 Choose parameters"),
-        # tags$div(
-        #   style = "width:100%;",
-        #   div(
-        #     style = "width:75%; margin:0 auto; border:solid grey 1px;",
-        #     includeHTML("www/tut/pca_pt_pt_param.svg")
-        #   )
-        # ),
+        p("On the sidebar are the parameters for constructing pseudo-time trajectory. 
+          First select the number of principal components to use, as the anchoring sample clusters 
+          will be computed with the PCA-reduced matrix. Next, select the range of 
+          desired number of anchoring clusters. Lastly, select the desired trajectory path. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_param.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_traj"),
         h3("3.2 View trajectory"),
+        p("Select Pseudo-Time Trajectory in the drop-down to view plot of anchoring clusters and trajectory. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_traj.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_chracc_along"),
         h3("3.3 Accessibility along pseudo-time"),
+        p("Select Accessibility along pseudotime to see the accessibility of 
+          genomic bins, bin clusters, or genes along the selected pseudotime."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_chracc_along_gbin_clu"),
         h4("3.3.1 Genomic bin clusters accessibility along pseudo-time"),
+        p("To show genomic bins accessibility along pseudotime, select Genomic bin 
+          clusters in the drop-down, and select the desired number of genomic bin clusters
+          in the options panel. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin_clu1.svg")
+          )
+        ),
+        p("You may choose to show a scatter plot with trend or a heat map. To show 
+          the scatter plot, you need to select Scatterplot and select one cluster to 
+          view its average accessibility along pseudotime. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin_clu2.svg")
+          )
+        ),
+        p("To see the heatmap, select Heatmap instead. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin_clu3.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_chracc_along_gbin"),
         h4("3.3.2 Individual bins accessibility along pseudo-time"),
+        p("To show individual genomic bins accessibility along pseudotime, select 
+          Individual genomic bin from the drop-down. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin1.svg")
+          )
+        ),
+        p("The scatter plot visualization can be shown if you select Scatter plot and 
+          click on the desired genomic bin from the table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin2.svg")
+          )
+        ),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin3.svg")
+          )
+        ),
+        p("You can also see the heatmap if you select Heatmap as your visualization method. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gbin4.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_chracc_along_gene"),
         h4("3.3.3 Gene average accessibility along pseudo-time"),
+        p("To see gene average accessibility along pseudotime, first select 
+          Gene average from the drop-down, and then select a maximum mapping distance 
+          between the genomic bins and their nearest genes. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gene1.svg")
+          )
+        ),
+        p("The nearest genes mapped are shown in a table. Select the gene that you want to 
+          view accessibility for, and the plot will show up below the table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gene2.svg")
+          )
+        ),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_chracc_along_gene3.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_expr_along"),
         h3("3.4 Expression along pseudo-time"),
+        p("To view genomic bins/bin clusters/genes expression along pseudotime, 
+          select Nearest gene expression along pseudotime as your chosen result panel. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_expr_along_gbin_clu"),
         h4("3.4.1 Genomic bin clusters expression along pseudo-time"),
+        p("To show genomic bin clusters average expression, select Genomic bin clusters, 
+          and then choose the number of genomic bin clusters you want."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin_clu1.svg")
+          )
+        ),
+        p("Same as before, you can choose whether you want to see the scatter plot 
+          or heatmap visualization. For scatter plot, select Scatterplot from drop-down, 
+          and choose whether you want the average expression to be computed across the bins or 
+          their nearest genes. Since many bins may map to the same gene, the weight 
+          of each gene's expression pattern (expression is in terms of ensembl genes) 
+          will be different in the average calculation. You also need to select the 
+          specific bin cluster that you want to see as well as the mapping distance 
+          limit of genomic bin to nearest gene mapping. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin_clu2.svg")
+          )
+        ),
+        p("Scroll down to the the plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin_clu3.svg")
+          )
+        ),
+        p("To see the heat map visualization, select Heatmap and whether you want to 
+          compute the average expression across bins or genes. Choose a mapping distance 
+          limit, and the heat map will show up on the bottom of the page. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin_clu4.svg")
+          )
+        ),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin_clu5.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_expr_along_gbin"),
         h4("3.4.2 Individual bins expression along pseudo-time"),
+        p("To show individual genomic bins expression along pseudotime, first select 
+          Individual genomic bin from drop-down, and then select a maximum bin-to-gene 
+          mapping distance."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin1.svg")
+          )
+        ),
+        p("To view the scatterplot representation, select Scatterplot as your visualization 
+          method. Then, select one genomic bin from the table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin2.svg")
+          )
+        ),
+        p("lastly, scroll down to see the scatter plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin3.svg")
+          )
+        ),
+        p("To view a heatmap representation of each bin's expression along pseudotime, 
+          select Heatmap. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gbin4.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_pt_expr_along_gene"),
         h4("3.4.3 Gene average expression along pseudo-time"),
+        p("To see gene average expression along pseudo-time, first select Gene average 
+          from drop-down, and then select the maximum bin-to-gene mapping distance. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gene1.svg")
+          )
+        ),
+        p("To view the scatter plot, select Scatterplot and click on the target gene in 
+          the table. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gene2.svg")
+          )
+        ),
+        p("Scroll down to see the plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gene3.svg")
+          )
+        ),
+        p("To look at the heat map visualization, select heat map. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_pt_expr_along_gene4.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "pca_pt_diff"), 
         h2("4 Differential test along pseudo-time"), 
+        p("You can perform a differential analysis to see whether there is a significant 
+          accessibility pattern along the selected pseudotime. Go to the Pseudo-time Differential Test tab."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_diff_subject"),
         h3("4.1 Select test subject"),
+        p("You need to select the subject of the differential test in the sidebar. 
+          The differential test will test whether the selected subject's (average) accessibility 
+          has a significant pattern along pseudotime. For genomic bins subjects, 
+          you do not need to do any further parameter selections, and you can click on 
+          Perform Test to start running the test."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_subject1.svg")
+          )
+        ),
+        p("For genomic bin clusters subjects, you need to select Genomic bin clusters 
+          from the drop-down first, then select the desired number of clusters by k-means, 
+          and finally click on Perform Test to run the analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_subject2.svg")
+          )
+        ),
+        p("For gene subjects, you need to select Gene average accessibility 
+          from the drop-down first, then set the bin-to-gene mapping distance limit, 
+          and finally click on Perform Test to run the analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_subject3.svg")
+          )
+        ),
+        br(),
+        
+        a(name = "pca_pt_diff_table"),
+        h3("4.2 Test result table"),
+        p("Test results will show in the main panel on the right. The Result tab shows 
+          the differential test result table, where each row is a test subject (a bin, 
+          a bin cluster, or a gene). "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_table.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_diff_summary"),
-        h3("4.2 Test summary"),
+        h3("4.3 Test summary"),
+        p("To see the test summary plots, you can go to the Summary tab. You may adjust 
+          the FDR threshold for defining significant subjects. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_summary1.svg")
+          )
+        ),
+        p("Scroll down to see the FDR or p-value histograms. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_summary2.svg")
+          )
+        ),
+        p("Scroll down again to see the p-value adjustment line plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_diff_summary3.svg")
+          )
+        ),
         br(),
         
         hr(),
         
         a(name = "pca_pt_go"),
         h2("5 GO analysis on significant hits"),
+        p("You can click on the Gene ontology tab to perform a GO enrichment analysis 
+          on the significant subjects from differential test. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_go_map"),
         h3("5.1 Map significant hits to genes"),
+        p("First, you need to map the significant subjects to genes. This mapping is 
+          different for each type of subject (bin, bin cluster, gene). "),
         br(),
         
         a(name = "pca_pt_go_map_gbin_clu"),
         h4("5.1.1 Map significant bin clusters"),
+        p("For genomic bin cluster subjects, the significant clusters need to be first 
+          defined with your choice of significance level, and the significant clusters found 
+          will automatically show up in the selection bar, where you may choose to 
+          exclude any significant clusters of your choice. Lastly, you need to define the 
+          genomic bin to gene mapping distance limit to map all bins in selected 
+          significant clusters to their nearest genes. "),
+        p("You may also choose to perform other analyses with external tools such as 
+          EnrichR or GREAT. The bins and genes from your selected significant clusters 
+          are available for download and copy. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go_map_gbin_clu.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_go_map_gbin"),
         h4("5.1.2 Map significant bins"),
+        p("For genomic bin subjects, the significant bins need to be first 
+          defined with your choice of significance level. Next, you need to define the 
+          genomic bin to gene mapping distance limit to map all significant bins to their nearest genes. "),
+        p("You may also choose to perform other analyses with external tools such as 
+          EnrichR or GREAT. The significant bins and genes 
+          are available for download and copy. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go_map_gbin.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_go_map_gene"),
         h4("5.1.3 Map genes"),
+        p("For gene subjects, the significant genes need to be 
+          defined with your choice of significance level. "),
+        p("You may also choose to perform other analyses with external tools such as 
+          EnrichR. The significant genes are available for download and copy. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go_map_gene.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_go_options"),
         h3("5.2 GO analysis options"),
+        p("You may choose to adjust the GO enrichment analysis parameters and the number 
+          of top terms to return. Click on Find top GO terms button to run GO enrichment analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go_options.svg")
+          )
+        ),
         br(),
         
         a(name = "pca_pt_go_res"),
-        h3("5.3 Result tables and graphs")
+        h3("5.3 Result tables and graphs"), 
+        p("There are a range of different visualizations available for the top GO terms returned. 
+          Use the drop-down to select which one you want to see. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/pca_pt_go_res.svg")
+          )
+        ),
       )
     )
   })
@@ -13455,68 +14319,249 @@ server <- function(input, output, session) {
       mainPanel(
         a(name = "group_diff_req"), 
         h2("Before analysis"), 
+        div(
+          HTML("At least <b>3 samples and 2 genomic bins</b> need to be selected to 
+          perform differential analysis between sample groups. For instructions on how to
+          select input samples and genomic bins, see the "), 
+          actionLink("input_sel_tut_link", "Input Selection Tutorial"), 
+          HTML(". ")
+        ),
+        p("To navigate to group differential analysis, go to Prediction Visualization 
+          and go to Group differential analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group.svg")
+          )
+        ),
         br(),
         
         hr(),
         
         a(name = "group_diff_group"),
         h2("1 Grouping samples"),
+        p("You need to first divide selected samples into groups to perform differential test. 
+        To do this, go to the Group samples tab. There are multiple ways to group samples. "),
         br(),
         
         a(name = "group_diff_group_kmeans"),
         h3("1.1 Group by k-means clustering"),
+        p("To group samples by k-means clustering, select k-means clustering as your 
+          grouping method. Select the number of top variance bins that you want to include 
+          in PCA computation, and then select the number of PCs you want to use for k-means. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_kmeans1.svg")
+          )
+        ),
+        p("Next, select the number of clusters you want for k-means clustering. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_kmeans2.svg")
+          )
+        ),
+        p("Finally, click on Confirm groups button to confirm this sample grouping. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_kmeans3.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_group_text"),
         h3("1.2 Group by text input"),
+        p("To group by text input, use manual selection and select Text input. Then, 
+          either paste or upload the text indicating sample groups in the specified format. 
+          Lastly, click on Confirm groups to submit grouping. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_text.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_group_drag"),
         h3("1.3 Group by drag-and-drop"),
+        p("To group by drag-and-drop, use manual selection and select Drag and drop. Then, 
+          on the right side panel, drag the sample tags to the buckets (groups). The screenshot 
+          shows an incomplete grouping. You must drag all samples out of the source bucket for 
+          a valid sample grouping, as no samples should remain ungrouped. "),
+        p("Once you have finished dragging samples to their assigned groups, click on Confirm groups 
+          to record this grouping. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_drag.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_group_plotsel"),
         h3("1.4 Group by selecting from plot"),
+        p("To group by selection from plot, use manual selection and select Select from plot. Then, 
+          adjust the number of top variance bins that will be used in generating the PCA plot for group selection. 
+          On the generated PCA plot on the right, hover on the plot to make the plot interaction 
+          tools bar to appear, and use either lasso select or box select to select the samples that you would like 
+          to put in the same group on the plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_plotsel1.svg")
+          )
+        ),
+        p("Once you have selected samples from the plot, you may view the selected samples in a table. 
+          Use the buttons on the bottom of the page to assign a group to the selected samples or 
+          add all remaining samples (all points in PCA plot) to a new group. "),
+        p("Once you have completed assigning all samples to groups, click on Confirm group selection 
+          button in the left panel to confirm this grouping. You may also view the currently selected groups by 
+          clicking on the View selected groups in the left panel. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_group_plotsel2.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "group_diff_test"), 
         h2("2 Differential test"), 
+        p("Go to the next tab (Differential testing) to adust parameters and perform 
+          differential test. Please note that tests are run for all selected genomic bins. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_test.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_test_param"),
         h3("2.1 Test parameters"),
+        p("Now, select the groups that you want to compare. Select a test method, 
+          and lastly click Perform Test to run the differential test with selected 
+          parameters. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_test_param.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_test_table"),
         h3("2.2 Result table"),
+        p("The result panel contains several tabs. The first one (Results) shows a 
+          result table, in which each row is a selected genomic bin, and columns show 
+          result attributes such as p-value, FDR, and statistics. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_test_table.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_test_summary"),
         h3("2.3 Result summary"),
+        p("The second panel shows a summary of the number of significant bins found, a 
+          p-value or FDR histogram, and a p-value adjustment line plot. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_test_summary.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_test_volcano"),
         h3("2.4 Volcano plot"),
+        p("To make a volcano plot of tested groups, go to Volcano plot tab, select the 
+          2 groups that you want to compare and compute fold changes for, and then choose the 
+          y-axis variable (either p-value or FDR). Lastly, click on Make volcano plot to 
+          generate the plot. The volcano plot will show up below the parameters panel. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_test_volcano.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "group_diff_go"),
         h2("3 GO analysis"),
+        p("Go to the Gene ontology tab to perform GO enrichment analysis on significantly 
+          differential bins. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_go.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_go_map"),
         h3("3.1 Mapping significant bins to genes"),
+        p("You need to first identify the significant bins by defining the significance 
+          criteria. Then, set the maximum distance for bins to genes mapping, and the 
+          nearest genes will be found and used to perform GO enrichment analysis. "),
+        p("You may also use external tools like EnrichR or GREAT to perform more in-depth 
+          analysis on the significant gene set or the significant genomic regions. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_go_map.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_go_options"),
         h3("3.2 Test options"),
+        p("Next, select the parameters for GO enrichment analysis, such as which control 
+          genes to use, the Gene ontology category, and the number of top GO terms to return. 
+          Finally, click on Find top GO terms to perform the analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_go_options.svg")
+          )
+        ),
         br(),
         
         a(name = "group_diff_go_res"),
         h3("3.3 Result tables and graphs"),
+        p("The GO enrichment analysis results include a variety of tables and graphs. You 
+          may use the drop-down to select the ones you want to see. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/group_diff_go_res.svg")
+          )
+        ),
         br(),
       )
     )
@@ -13528,6 +14573,7 @@ server <- function(input, output, session) {
       sidebarPanel(
         h3("Contents"), 
         hr(),
+        a(href="#disease_snp_req", class="content_link", h4("Before analysis")), 
         a(href="#disease_snp_disease_sel", class="content_link", h4("1 Disease selection")), 
         a(href="#disease_snp_subset_snp", class="content_link", h4("2 Subset SNPs")), 
         a(href="#disease_snp_window", class="content_link", h4("3 Choose SNPs window size")), 
@@ -13543,38 +14589,130 @@ server <- function(input, output, session) {
         )
       ), 
       mainPanel(
+        h2("Before analysis"), 
+        div(
+          HTML("At least <b>2 samples</b> need to be selected to 
+          perform disease SNP analysis. For instructions on how to
+          select input samples, see the "), 
+          actionLink("input_sel_tut_link", "Input Selection Tutorial"), 
+          HTML(". ")
+        ),
+        br(), 
+        
+        hr(), 
+        
         a(name = "disease_snp_disease_sel"), 
         h2("1 Disease selection"), 
+        p("Navigate to the disease SNP analysis page. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_disease_sel1.svg")
+          )
+        ),
+        p("Select desired disease(s)/trait(s) in the sidebar. You may type in the search 
+          box to search for disease/trait. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_disease_sel2.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "disease_snp_subset_snp"), 
         h2("2 Subset SNPs"), 
+        p("Each selected disease/trait is associated with a set of SNPs. You can view and 
+          edit the associated SNPs by clicking on the Show disease associated SNPs table button. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_subset_snp1.svg")
+          )
+        ),
+        p("In the pop-up modal, you can select the SNPs that you want to keep and click on the 
+          Confirm SNP subset button to subset the SNPs. If you do not subset the SNPs, all 
+          associated SNPs will be selected. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_subset_snp2.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "disease_snp_window"), 
         h2("3 Choose SNPs window size"), 
+        p("Set a SNP window size to find bins that are covered by the SNP windows. 
+          Please note that in session run on shinyapps.io server, the maximum number of 
+          bins that can be selected (covered by SNP windows) is 10,000. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_window.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "disease_snp_res"), 
         h2("4 SNP analysis results"), 
+        p("The result panels will be different for multiple diseases and for a single disease selection. 
+          Namely, There will be an additional bar plot for the single disease results, and the tables and 
+          heatmaps are formatted differently for single and multiple diseases results. "),
         br(),
         
         a(name = "disease_snp_res_table"),
         h3("4.1 Result table"),
+        p("The first result page contains result tables. If you selected a single disease, 
+          the columns of the result table will be the average disease SNPs accessibility and the normalized 
+          disease SNPs accessibility. The rows will be samples. If you selected multiple 
+          diseases, there will be two tables, one containing average disease SNPs accessibilities, and the 
+          other containing normalized average accessibilities. The columns will be diseases, and 
+          the rows will be samples. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_res_table.svg")
+          )
+        ),
         br(),
         
         a(name = "disease_snp_res_barplot"),
         h3("4.2 Result bar plot"),
+        p("The bar plot is only available for single disease analysis. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_res_barplot.svg")
+          )
+        ),
         br(),
         
         a(name = "disease_snp_res_heatmap"),
         h3("4.3 Result heatmap"),
+        p("The heatmap for single disease result has genomic bins covered by the disease SNP 
+          windows on the rows and the diseases/traits on the columns. You will be able 
+          to select the number of top variance bins to include in the heatmap. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_res_heatmap2.svg")
+          )
+        ),
         br(),
       )
     )
@@ -13599,29 +14737,103 @@ server <- function(input, output, session) {
         a(href="#gtex_snp_res", class="content_link", h4("2 Result heatmap"))
       ), 
       mainPanel(
+        p("The GTEx tissues SNPs page includes a pre-computed normalized tissue and 
+          trait-average accessibility matrix for all GTEx tissues and GWAS traits 
+          from GWAS Catalog all associations v1.0. You may set several parameters 
+          to generate an interactive heat map. "),
+        p("First, navigate to GTEx tissues SNPs from the navigation bar."),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_navi.svg")
+          )
+        ),
+        
         a(name = "gtex_snp_param"), 
         h2("1 Adjust heatmap parameters"), 
+        p("You can adjust the heat map parameters in the side panel. "),
         br(),
         
         a(name = "gtex_snp_param_tissue"), 
         h3("1.1 Select tissues"), 
+        p("To adjust the tissues (columns) displayed on the heat map, click on Subset GTEx tissues 
+          to open a modal for tissues selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_param_tissue1.svg")
+          )
+        ),
+        p("Edit the selection by clicking rows in the table, and click Confirm selection 
+          to record this selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_param_tissue2.svg")
+          )
+        ),
         br(),
         
         a(name = "gtex_snp_param_trait"), 
         h3("1.2 Select traits"), 
+        p("To adjust the traits (columns) displayed on the heat map, click on Subset traits 
+          to open a modal for traits selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_param_trait1.svg")
+          )
+        ),
+        p("Edit the selection by clicking rows in the table, and click Confirm selection 
+          to record this selection. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_param_trait2.svg")
+          )
+        ),
         br(),
         
         a(name = "gtex_snp_param_other"), 
         h3("1.3 Other parameters"), 
+        p("You can also adjust the other parameters for row and column appearance. 
+          Click on Apply setting and update heatmap to reflect all changes on the 
+          heat map. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_param_other.svg")
+          )
+        ),
         br(),
         
         hr(), 
         
         a(name = "gtex_snp_res"), 
         h2("2 Result heatmap"), 
+        p("You can hover on heat map elements to see the tissue and trait, and you 
+          can brush on the heat map to zoom in. You may also download the heat map data. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/gtex_snp_res.svg")
+          )
+        ),
         br(),
       )
     )
+  })
+  
+  # Go to input selection tutorial page on link click
+  observeEvent(input$input_sel_tut_link, {
+    updateSelectInput(inputId = "tut_page_sel", selected = "input_sel_tut")
   })
   
   # Go to input selection tutorial page on link click
