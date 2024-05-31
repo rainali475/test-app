@@ -195,7 +195,7 @@ ui <- fluidPage(
                              class = "important-btn")
                 ),
                 column(
-                  3, 
+                  6, 
                   uiOutput("run_from_local_ui")
                 )
               )
@@ -1031,13 +1031,13 @@ server <- function(input, output, session) {
   output$run_from_local_ui <- renderUI({
     if (Sys.getenv('SHINY_PORT') != "") {
       actionButton("show_r_instructions", "Run from local R session", 
-                   width = "100%",
                    class = "regular-btn")
     }
   })
   
   # Modal for instructions for running from local host
   observeEvent(input$show_r_instructions, {
+    runapp_code <- "if(!require(\"shiny\")) install.packages(\"shiny\")\nshiny::runGitHub(\"test-app\", \"rainali475\")"
     showModal(
       modalDialog(
         HTML(paste0("<p>You can run the app from local R session to work with large studies 
