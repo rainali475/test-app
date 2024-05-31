@@ -14710,6 +14710,15 @@ server <- function(input, output, session) {
           style = "width:100%;",
           div(
             style = "width:75%; margin:0 auto; border:solid grey 1px;",
+            includeHTML("www/tut/disease_snp_res_heatmap1.svg")
+          )
+        ),
+        p("The heatmap for multiple diseases result has diseases/traits on the columns and samples 
+          on the rows. "),
+        tags$div(
+          style = "width:100%;",
+          div(
+            style = "width:75%; margin:0 auto; border:solid grey 1px;",
             includeHTML("www/tut/disease_snp_res_heatmap2.svg")
           )
         ),
