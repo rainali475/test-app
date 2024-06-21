@@ -166,6 +166,8 @@ ui <- fluidPage(
     title = "ChromBIRD", 
     id = "chrombird_nav",
     
+    selected = "Input Selection",
+    
     tabPanel(
       title = "Home", 
       
@@ -177,7 +179,7 @@ ui <- fluidPage(
             # Adapted from https://gist.github.com/markcaron/64c2d6dcc50c5e6857f187c1b6554709#file-figure-donut-chart-with-key-html
             tags$style(
               HTML("#stats_donut {display: flex;align-items: center;}
-              #stats_donut div {display: flex;align-items: center;height: 450px;}")
+              #stats_donut div {height: 450px;}")
             ),
             tags$div(
               id = "stats_donut", 
@@ -187,6 +189,7 @@ ui <- fluidPage(
               ),
               tags$div(
                 id = "stats_donut_legend", 
+                style = "width:40%;height:100%",
                 includeHTML("www/overview/stats_donut_legend.html")
               )
             ), 
@@ -207,13 +210,19 @@ ui <- fluidPage(
               br(), 
               fluidRow(
                 column(
-                  3, 
+                  4, 
                   actionButton("start_exploration", "Start exploring", 
                                width = "100%",
                              class = "important-btn")
                 ),
                 column(
-                  6, 
+                  4, 
+                  actionButton("to_tut", "Go to tutorial", 
+                               width = "100%",
+                               class = "regular-btn")
+                ),
+                column(
+                  4, 
                   uiOutput("run_from_local_ui")
                 )
               )
@@ -228,7 +237,7 @@ ui <- fluidPage(
       tags$div(
         style = "margin-left:10%; margin-right:10%",
         
-        HTML("<h1><font color=\"#e95420\"><b>Site Map</b></font></h1>"), 
+        HTML("<h1><font color=\"#e95420\"><b>ChromBIRD workflow</b></font></h1>"), 
         tags$div(
           style = "position:relative;width:90%;padding-top:90%;margin:5% 5%;", 
           
@@ -612,7 +621,7 @@ ui <- fluidPage(
     
     # Visualization
     navbarMenu(
-      title = "Prediction Visualization", 
+      title = "Data Exploration Tools", 
       # Tab panel for PCA
       tabPanel(
         title = "PCA and pseudo-time", 
@@ -671,9 +680,16 @@ ui <- fluidPage(
       ), 
       
       tabPanel(
+        title = "Application Examples", 
+        
+        
+      ),
+      
+      tabPanel(
         title = "User Manual", 
         tags$iframe(style="height:600px; width:100%", 
-                    src="http://jilab.biostat.jhsph.edu/software/PDDB/app_files/user_manual.pdf")
+                    #src="http://jilab.biostat.jhsph.edu/software/PDDB/app_files/user_manual.pdf", 
+                    src="www/User Manual.pdf")
       ), 
       
       tabPanel(
@@ -886,11 +902,16 @@ server <- function(input, output, session) {
     updateNavbarPage(session, inputId = "chrombird_nav", selected = "Input Selection")
   })
   
+  # Go to tutorial on overview page button click
+  observeEvent(input$to_tut, {
+    updateNavbarPage(session, inputId = "chrombird_nav", selected = "Tutorial")
+  })
+  
   # Button: instructions for running from local host
   output$run_from_local_ui <- renderUI({
     if (Sys.getenv('SHINY_PORT') != "") {
       actionButton("show_r_instructions", "Run from local R session", 
-                   class = "regular-btn")
+                   class = "regular-btn", width = "100%")
     }
   })
   
@@ -931,8 +952,7 @@ server <- function(input, output, session) {
               </li>
               </ol>
               </p>")),
-        easyClose = TRUE, 
-        footer = NULL
+        easyClose = TRUE
       )
     )
   })
@@ -1311,7 +1331,7 @@ server <- function(input, output, session) {
                 ),
                 actionButton("sel_example_dat", "Select example dataset: 144 whole blood samples", 
                              style = "width: 100%; border: 1px solid white;", 
-                             class = "regular-btn"),
+                             class = "important-btn"),
                 actionButton("clear_sel_samples", "Clear sample selection", 
                              style = "width: 100%; border: 1px solid white;", 
                              class = "regular-btn")
@@ -1347,7 +1367,10 @@ server <- function(input, output, session) {
                                          icon = icon("info"), 
                                          style = "info", 
                                          size = "extra-small")), 
-              choices = c("Use default range", "Use entire BIRD range", "BED input", "Manual")
+              choices = c("Use default range", 
+                          "Use entire BIRD range", 
+                          "BED input", 
+                          "Manual")
             ),
             bsPopover(
               id = "range_sel_method_info",
@@ -1363,7 +1386,7 @@ server <- function(input, output, session) {
             # Default range
             conditionalPanel(
               condition = "input.all_sel_method == 'Use default range'", 
-              p("All BIRD bins in chromosome 1 are selected. ")
+              p("100,000 random BIRD bins throughout the genome are selected. ")
             ),
             
             # BIRD range
@@ -1377,7 +1400,8 @@ server <- function(input, output, session) {
             conditionalPanel(
               condition = "input.all_sel_method == 'BED input'", 
               fileInput("all_bed", 
-                        label = "Choose BED file")
+                        label = "Choose BED file"), 
+              textOutput("all_bed_text")
             ), 
             
             # Manual selection
@@ -2173,8 +2197,7 @@ server <- function(input, output, session) {
               </li>
               </ol>
               </p>")),
-        easyClose = TRUE, 
-        footer = NULL
+        easyClose = TRUE
       )
     )
   })
@@ -2483,8 +2506,7 @@ server <- function(input, output, session) {
           HTML(paste0("You tried to retrieve a set of studies with more than 200,000 samples in total. 
                         This amount of samples is not suitable for analysis with this app. Please 
                         select fewer studies. ")), 
-          easyClose = TRUE, 
-          footer = NULL
+          easyClose = TRUE
         )
       )
       sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
@@ -2528,8 +2550,7 @@ server <- function(input, output, session) {
               </li>
               </ol>
               </p>")),
-          easyClose = TRUE, 
-          footer = NULL
+          easyClose = TRUE
         )
       )
       sample_sel_table_submission_msg(paste("Selection failed. Study size limit exceeded. Please select fewer studies. "))
@@ -3104,15 +3125,28 @@ server <- function(input, output, session) {
                                 sample=blood_example_samples(), 
                                 read_from="database"))
     showModal(
-      modalDialog("144 age-stratified whole blood samples from GTEx BLOOD dataset have been selected. 
-      24 samples from each age group were randomly selected from all whole blood samples in BLOOD dataset. 
-      You may use this dataset to replicate the blood pseudo-temporal analysis case study. 
-                  Please note that all other previously selected samples were removed from selection. 
-                  Also note that if you are using this app from server, you cannot select any other GTEx BLOOD 
-                  samples, as doing so will cause the selected study size to exceed RAM limit for 
-                  retrieving prediction data from server. ", 
-                  footer = NULL, easyClose = TRUE)
+      modalDialog(
+        p("144 GTEx BLOOD samples have been selected. 
+          Please note that all other previously selected samples were removed from selection."), 
+        p("You may use this dataset to replicate the blood pseudo-temporal analysis case study. "), 
+        p("If you encounter issues related to insufficient RAM, please try to run the 
+          ChromBIRD app on your local computer instead of using the remote server."),
+        checkboxInput(
+          "show_example_dat_details", 
+          "Show example dataset details", 
+          value = FALSE
+        ),
+        uiOutput("example_dat_details"),
+        easyClose = TRUE
+      )
     )
+  })
+  
+  output$example_dat_details <- renderUI({
+    if (input$show_example_dat_details) {
+      p("The demo dataset includes 144 age-stratified whole blood samples from GTEx BLOOD dataset, 
+        with 24 samples from each age group randomly selected from whole blood samples in BLOOD dataset. ")
+    }
   })
   
   output$download_bird_range_bed <- downloadHandler(
@@ -3140,14 +3174,21 @@ server <- function(input, output, session) {
     })
   })
   
+  # BED range selection message
+  output$all_bed_text <- renderText({all_bed_msg()})
+  all_bed_msg <- reactiveVal()
+  
   # Custom input ranges from range selection tab
   custom_gr <- reactive({
     req(input$all_sel_method)
     if (input$all_sel_method == 'Use default range') {
-      # Default ranges is chr1
-      return(GRanges(seqnames = "chr1", 
-                     ranges = IRanges(start = chr_max_ranges()["chr1", "start"], 
-                                      end = chr_max_ranges()["chr1", "end"])))
+      # # Default ranges is chr1
+      # return(GRanges(seqnames = "chr1", 
+      #                ranges = IRanges(start = chr_max_ranges()["chr1", "start"], 
+      #                                 end = chr_max_ranges()["chr1", "end"])))
+      # Default is random 100,000 bins from entire genome
+      set.seed(12345)
+      return(bird_ranges()[sample(1:length(bird_ranges()), 1e5)])
     } 
     if (input$all_sel_method == 'Use entire BIRD range') {
       # All BIRD output ranges
@@ -3169,18 +3210,37 @@ server <- function(input, output, session) {
       return(GRanges())
     }
     bed_path <- input$all_bed$datapath
-    bed_df <- read.table(bed_path)[, 1:3]
+    
     # Check BED file contents
-    validate(
-      need(all(bed_df[, 1] %in% chromosomes), 
-           paste("BED file first column must be chromosomes. Valid values are:", 
-                 paste(chromosomes, collapse = ", "))), 
-      need(all(bed_df[, 2:3] %% 1 == 0), 
-           "BED file second and third columns must be integers")
+    err <- tryCatch(
+      {
+        bed_df <- read.table(bed_path)
+        validate(
+          need(ncol(bed_df) >= 3, 
+               paste("BED file must contain at least 3 space- or tab-separated columns. ")), 
+          need(nrow(bed_df) > 0, 
+               paste("BED file must contain at least 1 row. ")),
+          need(all(bed_df[, 1] %in% chromosomes), 
+               paste("BED file first column must be chromosomes. Valid values are:", 
+                     paste(chromosomes, collapse = ", "))), 
+          need(all(bed_df[, 2:3] %% 1 == 0), 
+               "BED file second and third columns must be integers")
+        )
+        bed_df <- bed_df[, 1:3]
+        NULL
+      }, 
+      error = function(e) {
+        e$message
+      }
     )
-    return(GRanges(seqnames = bed_df[, 1], 
-                   ranges = IRanges(start = bed_df[, 2] + 1, 
-                                    end = bed_df[, 3] + 2)))
+    all_bed_msg(err)
+    if (is.null(err)) {
+      return(GRanges(seqnames = bed_df[, 1], 
+                     ranges = IRanges(start = bed_df[, 2] + 1, 
+                                      end = bed_df[, 3] + 2)))
+    } else {
+      return(GRanges())
+    }
   })
   
   # Parse genomic bin character vector of format "chr<n> (start-end)" to data.frame
@@ -3995,8 +4055,8 @@ server <- function(input, output, session) {
             selectInput(
               "pt_chracc_dat_type", 
               "Which accessibility to visualize along pseudotime: ", 
-              choices = c("Individual genomic bin", 
-                          "Genomic bin clusters", 
+              choices = c("Genomic bin clusters", 
+                          "Individual genomic bin", 
                           "Gene average")
             )
           ), 
@@ -4010,8 +4070,8 @@ server <- function(input, output, session) {
             selectInput(
               "pt_expr_dat_type", 
               "Which expression to visualize along pseudotime: ", 
-              choices = c("Individual genomic bin", 
-                          "Genomic bin clusters", 
+              choices = c("Genomic bin clusters", 
+                          "Individual genomic bin", 
                           "Gene average")
             )
           ), 
@@ -4083,30 +4143,13 @@ server <- function(input, output, session) {
                   options = list(container = "body", 
                                  html = TRUE)),
         wellPanel(
-          fluidRow(
-            column(
-              6, 
-              sliderInput(
-                "pt_n_gbin_clust", 
-                label = "Number of genomic bin clusters: ", 
-                min = 1, 
-                max = min(max_n_gbin, nrow(pred_mat())), 
-                value = opt_n_gbin_clust(), 
-                step = 1
-              ), 
-              bsTooltip("pt_n_gbin_clust", 
-                        title = "How many clusters do you want to group the top variance bins into? ",
-                        placement = "top")
-            ), 
-            column(
-              6, 
-              checkboxInput(
-                "use_opt_n_gbin_clust", 
-                label = "Use optimal number of genomic bin clusters", 
-                value = TRUE
-              )
-            )
-          ), 
+          checkboxInput(
+            "pt_gbin_clust_use_filter", 
+            "Filter genomic bins used in clustering", 
+            value = FALSE
+          ),
+          uiOutput("pt_gbin_clust_filter_ui"),
+          uiOutput("pt_gbin_clust_ui"), 
           htmlOutput('opt_n_gbin_clust_msg'),
           bsTooltip("opt_n_gbin_clust_msg", 
                     title = "The optimal number of genomic bin clusters is determined by elbow method. ",
@@ -4205,7 +4248,6 @@ server <- function(input, output, session) {
         uiOutput('pt_gene_chracc_ui')
       )
     }
-    
   })
   
   output$pt_gene_chracc_gene_dist_plot_ui <- renderUI({
@@ -4236,30 +4278,13 @@ server <- function(input, output, session) {
                   options = list(container = "body", 
                                  html = TRUE)),
         wellPanel(
-          fluidRow(
-            column(
-              6, 
-              sliderInput(
-                "pt_n_gbin_clust", 
-                label = "Number of genomic bin clusters: ", 
-                min = 1, 
-                max = min(max_n_gbin, nrow(pred_mat())), 
-                value = opt_n_gbin_clust(), 
-                step = 1
-              ), 
-              bsTooltip("pt_n_gbin_clust", 
-                        title = "How many clusters do you want to group the top variance bins into? ",
-                        placement = "top")
-            ), 
-            column(
-              6, 
-              checkboxInput(
-                "use_opt_n_gbin_clust", 
-                label = "Use optimal number of genomic bin clusters", 
-                value = TRUE
-              )
-            )
-          ), 
+          checkboxInput(
+            "pt_gbin_clust_use_filter", 
+            "Filter genomic bins used in clustering", 
+            value = FALSE
+          ),
+          uiOutput("pt_gbin_clust_filter_ui"),
+          uiOutput("pt_gbin_clust_ui"),
           htmlOutput('opt_n_gbin_clust_msg'),
           bsTooltip("opt_n_gbin_clust_msg", 
                     title = "The optimal number of genomic bin clusters is determined by elbow method. ",
@@ -4866,6 +4891,80 @@ server <- function(input, output, session) {
     scaled_mat
   })
   
+  # Filtered genomic bins BED message
+  output$pt_gbin_clust_filter_bed_text <- renderText({
+    bird_hits <- findOverlaps(pt_filtered_gr(), bird_ranges())
+    nbird_hits <- length(unique(bird_hits@to))
+    nbin_msg <- "No BIRD bins are covered by current selection. "
+    if (nbird_hits > 0) {
+      sel_hits <- findOverlaps(intersect(pt_filtered_gr(), custom_gr()), bird_ranges())
+      nbin_msg <- paste(nbird_hits, "BIRD bins are covered by current selection. 
+                        In these regions,", length(unique(sel_hits@to)), 
+                        "bins are in your selected genomic range, and", 
+                        nrow(pt_filtered_bins()), "are top variance bins. ")
+    }
+    if (is.null(pt_gbin_clust_filter_bed_msg())) {
+      return(nbin_msg)
+    }
+    paste0(pt_gbin_clust_filter_bed_msg(), "\n", nbin_msg)
+  })
+  
+  pt_gbin_clust_filter_bed_msg <- reactiveVal()
+  
+  # Filter genomic range
+  pt_filtered_gr <- reactive({
+    if (input$pt_show_panel == "Nearest gene expression along pseudotime") {
+      bed_input <- input$pt_expr_gbin_clust_filter_bed
+    } else if (input$pt_show_panel == "Accessibility along pseudotime") {
+      bed_input <- input$pt_acc_gbin_clust_filter_bed
+    }
+    if (is.null(bed_input)) {
+      return(GRanges())
+    }
+    bed_path <- bed_input$datapath
+    
+    # Check BED file contents
+    err <- tryCatch(
+      {
+        bed_df <- read.table(bed_path)
+        validate(
+          need(ncol(bed_df) >= 3, 
+               paste("BED file must contain at least 3 space- or tab-separated columns. ")), 
+          need(nrow(bed_df) > 0, 
+               paste("BED file must contain at least 1 row. ")),
+          need(all(bed_df[, 1] %in% chromosomes), 
+               paste("BED file first column must be chromosomes. Valid values are:", 
+                     paste(chromosomes, collapse = ", "))), 
+          need(all(bed_df[, 2:3] %% 1 == 0), 
+               "BED file second and third columns must be integers")
+        )
+        bed_df <- bed_df[, 1:3]
+        NULL
+      }, 
+      error = function(e) {
+        e$message
+      }
+    )
+    pt_gbin_clust_filter_bed_msg(err)
+    if (is.null(err)) {
+      return(GRanges(seqnames = bed_df[, 1], 
+                     ranges = IRanges(start = bed_df[, 2] + 1, 
+                                      end = bed_df[, 3] + 2)))
+    } else {
+      return(GRanges())
+    }
+  })
+  
+  # Filter genomic bins
+  pt_filtered_bins <- reactive({
+    topvar_gbins <- parse_gbin(rownames(pca_top_var_pred_mat()))
+    topvar_gr <- GRanges(seqnames = topvar_gbins$chromosome, 
+                         ranges = IRanges(start = topvar_gbins$start,
+                                          end = topvar_gbins$end))
+    hits <- findOverlaps(pt_filtered_gr(), topvar_gr)
+    topvar_gbins[hits@to, ]
+  })
+  
   # All genomic bin clustering results
   all_gbin_clust_res <- reactive({
     showModal(modalDialog("Clustering genomic bins...", footer = NULL, easyClose = TRUE, size = "s"))
@@ -4892,10 +4991,53 @@ server <- function(input, output, session) {
     return(all_res)
   })
   
+  # All filtered genomic bin clustering results
+  filtered_gbin_clust_res <- reactive({
+    req(pt_filtered_bins())
+    bins_df <- pt_filtered_bins()
+    if (nrow(bins_df) < 2) {
+      # Must select at least 2 bins
+      return(all_gbin_clust_res())
+    } else if (nrow(bins_df) == nrow(pca_top_var_pred_mat())) {
+      # Selected all top variance bins
+      return(all_gbin_clust_res())
+    }
+    filtered_bins <- paste0(bins_df[,1], " (", 
+                            bins_df[,2], "-", 
+                            bins_df[,3], ")")
+    filtered_mat <- pca_top_var_pred_mat()[filtered_bins, ]
+    showModal(modalDialog("Clustering genomic bins...", footer = NULL, easyClose = TRUE, size = "s"))
+    set.seed(12345)
+    # Do k-means clustering with all possible number of clusters
+    all_res <- list()
+    for (i in 1:min(max_n_gbin, nrow(filtered_mat) - 1)) {
+      suppressWarnings(kmeans_res <- kmeans(scaled_pt_mat()[filtered_bins, ], centers = i, nstart = 25, iter.max = 100))
+      all_res[[as.character(i)]] <- kmeans_res
+    }
+    if (min(max_n_gbin, nrow(filtered_mat)) == nrow(filtered_mat)) {
+      # Each row is its own cluster
+      kmeans_res <- list()
+      cluster <- 1:nrow(filtered_mat)
+      names(cluster) <- row.names(filtered_mat)
+      kmeans_res[['cluster']] <- cluster
+      centers <- filtered_mat
+      row.names(centers) <- as.character(c(1:nrow(filtered_mat)))
+      kmeans_res[['centers']] <- centers
+      kmeans_res[['tot.withinss']] <- 0
+      all_res[[as.character(nrow(filtered_mat))]] <- kmeans_res
+    }
+    removeModal()
+    return(all_res)
+  })
+  
   # Optimal number of genomic bin clusters
   opt_n_gbin_clust <- reactive({
     # Use elbow method to find optimal number of clusters
-    wss <- sapply(all_gbin_clust_res(), function(x) {x$tot.withinss})
+    clust_res <- all_gbin_clust_res()
+    if (input$pt_gbin_clust_use_filter) {
+      clust_res <- filtered_gbin_clust_res()
+    }
+    wss <- sapply(clust_res, function(x) {x$tot.withinss})
     x <- 1:length(wss)
     opt_nclust <- which.min(sapply(x, function(i) {
       x2 <- pmax(0,x-i)
@@ -4904,10 +5046,79 @@ server <- function(input, output, session) {
     return(opt_nclust)
   })
   
+  # Filter genomic bins used in clustering 
+  output$pt_gbin_clust_filter_ui <- renderUI({
+    if (input$pt_gbin_clust_use_filter) {
+      if (input$pt_show_panel == "Nearest gene expression along pseudotime") {
+        bed_input_id <- "pt_expr_gbin_clust_filter_bed"
+      } else if (input$pt_show_panel == "Accessibility along pseudotime") {
+        bed_input_id <- "pt_acc_gbin_clust_filter_bed"
+      }
+      tagList(
+        p("Please be aware that you may only use the top variance genomic bins. "), 
+        fileInput(
+          bed_input_id, 
+          "Choose BED file", width = "50%"
+        ), 
+        textOutput("pt_gbin_clust_filter_bed_text"), 
+        br()
+      )
+    }
+  })
+  
+  # Genomic bins clustering UI
+  output$pt_gbin_clust_ui <- renderUI({
+    clust_res <- all_gbin_clust_res()
+    if (input$pt_gbin_clust_use_filter) {
+      clust_res <- filtered_gbin_clust_res()
+    }
+    fluidRow(
+      column(
+        6, 
+        sliderInput(
+          "pt_n_gbin_clust", 
+          label = "Number of genomic bin clusters: ", 
+          min = 1, 
+          max = length(clust_res), 
+          value = opt_n_gbin_clust(), 
+          step = 1
+        ), 
+        bsTooltip("pt_n_gbin_clust", 
+                  title = "How many clusters do you want to group the top variance bins into? ",
+                  placement = "top")
+      ), 
+      column(
+        6, 
+        checkboxInput(
+          "use_opt_n_gbin_clust", 
+          label = "Use optimal number of genomic bin clusters", 
+          value = TRUE
+        )
+      )
+    )
+  })
+  
   # Selected genomic bin clustering results
   gbin_clust_res <- reactive({
-    kmeans_res <- all_gbin_clust_res()[[as.character(input$pt_n_gbin_clust)]]
+    clust_res <- all_gbin_clust_res()
+    if (input$pt_gbin_clust_use_filter) {
+      clust_res <- filtered_gbin_clust_res()
+    }
+    kmeans_res <- clust_res[[as.character(input$pt_n_gbin_clust)]]
     return(kmeans_res)
+  })
+  
+  # Adjust clustering to account for filtered bins
+  gbin_clust <- reactive({
+    clust <- gbin_clust_res()$cluster
+    if (input$pt_gbin_clust_use_filter) {
+      clu <- rep(0, nrow(pca_top_var_pred_mat()))
+      names(clu) <- rownames(pca_top_var_pred_mat())
+      clu[names(clust)] <- clust
+      return(clu)
+    } else {
+      return(clust)
+    }
   })
   
   # Message stating the optimal number of clusters
@@ -4916,8 +5127,12 @@ server <- function(input, output, session) {
   })
   
   pt_gbin_clust_wss_plot <- reactive({
-    tot_wss <- unlist(lapply(all_gbin_clust_res(), function(x) {x$tot.withinss}))
-    wss_df <- data.frame(n_clust = c(1:min(max_n_gbin, nrow(pca_top_var_pred_mat()))), 
+    clust_res <- all_gbin_clust_res()
+    if (input$pt_gbin_clust_use_filter) {
+      clust_res <- filtered_gbin_clust_res()
+    }
+    tot_wss <- unlist(lapply(clust_res, function(x) {x$tot.withinss}))
+    wss_df <- data.frame(n_clust = c(1:length(clust_res)), 
                          wss = tot_wss)
     wcss_plot <- ggplot(data = wss_df, 
                         mapping = aes(n_clust, wss))
@@ -4965,7 +5180,7 @@ server <- function(input, output, session) {
     showModal(modalDialog("Making cluster plot...", footer = NULL, easyClose = TRUE, size = "s"))
     # Plot the top 2 PCs
     clust_plot <- ggplot(data = data.frame(gbin_pca_res()$x)[, 1:2], 
-                         mapping = aes(PC1, PC2, colour = factor(gbin_clust_res()$cluster)))
+                         mapping = aes(PC1, PC2, colour = factor(gbin_clust())))
     clust_plot <- clust_plot + geom_point()
     clust_plot$labels$colour <- "Cluster"
     explained_var <- summary(gbin_pca_res())$importance[2, 1:2]
@@ -5002,7 +5217,7 @@ server <- function(input, output, session) {
     # Plot UMAP layout
     showModal(modalDialog("Making cluster plot...", footer = NULL, easyClose = TRUE, size = "s"))
     clust_plot <- ggplot(data = layout_df, 
-                         mapping = aes(UMAP_1, UMAP_2, colour = factor(gbin_clust_res()$cluster)))
+                         mapping = aes(UMAP_1, UMAP_2, colour = factor(gbin_clust())))
     clust_plot <- clust_plot + geom_point()
     clust_plot$labels$colour <- "Cluster"
     clust_plot <- clust_plot + theme(strip.background = element_rect(colour = "white", fill = "white")) + 
@@ -5025,7 +5240,7 @@ server <- function(input, output, session) {
   
   # Render table for genomic bin clusters means
   output$gbin_clust_means_table <- DT::renderDataTable(aggregate(pca_top_var_pred_mat(), 
-                                                                 by=list(cluster=gbin_clust_res()$cluster), 
+                                                                 by=list(cluster=gbin_clust()), 
                                                                  mean), 
                                                        rownames = FALSE,
                                                        filter = list(position = 'top', clear = FALSE), 
@@ -5033,8 +5248,8 @@ server <- function(input, output, session) {
                                                        options = list(scrollX = TRUE))
   
   # Render table for genomic bin cluster assignment
-  output$gbin_clust_table <- DT::renderDataTable(data.frame(cluster = as.factor(gbin_clust_res()$cluster), 
-                                                            genomic_bin = names(gbin_clust_res()$cluster)), 
+  output$gbin_clust_table <- DT::renderDataTable(data.frame(cluster = as.factor(gbin_clust()), 
+                                                            genomic_bin = names(gbin_clust())), 
                                                  rownames = FALSE,
                                                  filter = list(position = 'top', clear = FALSE), 
                                                  selection = "none")
@@ -5043,8 +5258,8 @@ server <- function(input, output, session) {
   output$gbin_clust_table_download <- downloadHandler(
     filename = function() { "Genomic_bin_clusters.txt" },
     content = function(file) {
-      write.table(data.frame(cluster = as.factor(gbin_clust_res()$cluster), 
-                             genomic_bin = names(gbin_clust_res()$cluster)),
+      write.table(data.frame(cluster = as.factor(gbin_clust()), 
+                             genomic_bin = names(gbin_clust())),
                   file,
                   row.names=F,
                   quote=F,
@@ -5224,7 +5439,7 @@ server <- function(input, output, session) {
   
   pt_gbin_clust_chracc_plot <- reactive({
     mean_pt_df <- aggregate(scaled_pt_mat(), 
-                            by=list(cluster=gbin_clust_res()$cluster), 
+                            by=list(cluster=gbin_clust()), 
                             mean)
     chosen_clust_scaled <- as.numeric(mean_pt_df[mean_pt_df$cluster == input$pt_choose_gbin_clust, 2:ncol(mean_pt_df)])
     names(chosen_clust_scaled) <- pred_order()$sample_name
@@ -5254,7 +5469,7 @@ server <- function(input, output, session) {
   pt_all_clust_expr <- reactive({
     clu_avg_expr <- t(sapply(unique(gbin_clust_res()$cluster), function(clu) {
       pt_gbin_clust_exist_ensembl(TRUE)
-      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust_res()$cluster == clu]
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() == clu]
       # Find nearest genes
       clu_gbin_tss <- gbin_tss()[gbin_names, ]
       clu_gbin_tss <- clu_gbin_tss[clu_gbin_tss$distance <= input$pt_gene_maxdist, ]
@@ -5317,8 +5532,9 @@ server <- function(input, output, session) {
   pt_gbin_clust_chracc_heatmap <- reactive({
     showModal(modalDialog("Making heat map...", footer = NULL, easyClose = TRUE, size = "s"))
     mean_pt_df <- aggregate(scaled_pt_mat(), 
-                            by=list(cluster=gbin_clust_res()$cluster), 
+                            by=list(cluster=gbin_clust()), 
                             mean)
+    mean_pt_df <- mean_pt_df[mean_pt_df[, 1] != 0, ]
     chosen_clust_scaled <- as.matrix.data.frame(mean_pt_df[, -1])
     rownames(chosen_clust_scaled) <- mean_pt_df$cluster
     ht <- Heatmap(chosen_clust_scaled, 
@@ -5370,6 +5586,7 @@ server <- function(input, output, session) {
   
   # Render genomic bin cluster chromatin accessibility visualization UI
   output$pt_gbin_clust_chracc_ui <- renderUI({
+    req(input$pt_n_gbin_clust)
     if (input$pt_gbin_clust_chracc_choose_plot == "Scatterplot") {
       tagList(
         selectInput(
@@ -5408,6 +5625,7 @@ server <- function(input, output, session) {
   
   # Render genomic bin cluster expression visualization UI
   output$pt_gbin_clust_expr_ui <- renderUI({
+    req(input$pt_n_gbin_clust)
     if (input$pt_gbin_clust_expr_choose_plot == "Scatterplot") {
       tagList(
         selectInput(
@@ -5488,9 +5706,9 @@ server <- function(input, output, session) {
   
   pt_gbin_clust_expr_gene_dist_plot <- reactive({
     if (input$pt_gbin_clust_expr_choose_plot == "Scatterplot") {
-      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust_res()$cluster == input$pt_choose_gbin_clust]
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() == input$pt_choose_gbin_clust]
     } else {
-      gbin_names <- rownames(pca_top_var_pred_mat())
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() != 0]
     }
     sel_gbin_gene <- gbin_tss()[gbin_names, ]
     sel_gbin_gene <- sel_gbin_gene[! is.na(sel_gbin_gene$distance), ]
@@ -5553,15 +5771,16 @@ server <- function(input, output, session) {
   
   pt_gbin_clu_nearest_genes <- reactive({
     if (input$pt_gbin_clust_expr_choose_plot == "Scatterplot") {
-      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust_res()$cluster == input$pt_choose_gbin_clust]
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() == input$pt_choose_gbin_clust]
     } else if (input$pt_gbin_clust_expr_choose_plot == "Heatmap") {
-      gbin_names <- rownames(pca_top_var_pred_mat())
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() != 0]
     }
     # Find nearest genes
     clu_gbin_tss <- gbin_tss()[gbin_names, ]
     clu_gbin_tss <- clu_gbin_tss[clu_gbin_tss$distance <= input$pt_gene_maxdist, ]
     clu_gbin_tss <- clu_gbin_tss[! is.na(clu_gbin_tss$gene), ]
     clu_annots <- annots()[annots()$SYMBOL %in% clu_gbin_tss$gene, ]
+    clu_annots <- clu_annots[clu_annots$ENSEMBL %in% rownames(expr_mat()), ]
     # Remove 0-var genes
     clu_annots <- clu_annots[clu_annots$ENSEMBL %in% rownames(scaled_expr_pt_mat()), ]
     unique(clu_annots$SYMBOL)
@@ -5569,16 +5788,16 @@ server <- function(input, output, session) {
   
   output$pt_gbin_clu_ngene_msg <- renderUI({
     if (input$pt_gbin_clust_expr_choose_plot == "Scatterplot") {
-      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust_res()$cluster == input$pt_choose_gbin_clust]
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() == input$pt_choose_gbin_clust]
     } else if (input$pt_gbin_clust_expr_choose_plot == "Heatmap") {
-      gbin_names <- rownames(pca_top_var_pred_mat())
+      gbin_names <- rownames(pca_top_var_pred_mat())[gbin_clust() != 0]
     }
     # Find nearest genes
     clu_gbin_tss <- gbin_tss()[gbin_names, ]
     clu_gbin_tss <- clu_gbin_tss[clu_gbin_tss$distance <= input$pt_gene_maxdist, ]
     clu_gbin_tss <- clu_gbin_tss[! is.na(clu_gbin_tss$gene), ]
     if (input$pt_gbin_clust_expr_choose_plot == "Scatterplot") {
-      HTML(paste("<p>There are", strong(sum(gbin_clust_res()$cluster == input$pt_choose_gbin_clust)), 
+      HTML(paste("<p>There are", strong(sum(gbin_clust() == input$pt_choose_gbin_clust)), 
                  "bins in this cluster, mapping to", strong(length(unique(clu_gbin_tss$gene))), 
                  "genes inside the selected maximum mapping distance of selected bins. Of these genes,", 
                  strong(length(pt_gbin_clu_nearest_genes())), "have non-zero-variance expression values</p>"))
@@ -5737,8 +5956,9 @@ server <- function(input, output, session) {
     clu_gbin_tss <- gbin_tss()[gbin_names, ]
     clu_gbin_tss <- clu_gbin_tss[clu_gbin_tss$distance <= input$pt_gene_maxdist, ]
     clu_gbin_tss <- clu_gbin_tss[! is.na(clu_gbin_tss$gene), ]
-    # Only keep genes with matching ensembl
+    # Only keep genes with matching ensembl in expression matrix
     clu_annots <- annots()[annots()$SYMBOL %in% clu_gbin_tss$gene, ]
+    clu_annots <- clu_annots[clu_annots$ENSEMBL %in% rownames(expr_mat()), ]
     clu_gbin_tss <- clu_gbin_tss[clu_gbin_tss$gene %in% clu_annots$SYMBOL, ]
     # Find the expr vector for each gene symbol
     gene_expr <- aggregate(expr_mat()[clu_annots$ENSEMBL, , drop=F], 
@@ -12308,7 +12528,6 @@ server <- function(input, output, session) {
   observe({
     if (is.null(gtex_sel_traits())) {
       gtex_sel_traits(order(gtex_trait_table()$hypervar, decreasing = T)[1:2000])
-      print("updated")
     }
   })
   
@@ -12438,13 +12657,12 @@ server <- function(input, output, session) {
   observe(
     if (is.null(gtex_trait_mat())) {
       gtex_trait_mat(gtex_trait())
-      print("updated2")
     }
   )
   
   # gtex traits heatmap
   gtex_trait_heatmap <- reactiveVal(
-    #readRDS("../app files/gtex_trait_heatmaply.rds")
+    # readRDS("../app files/gtex_trait_heatmaply.rds")
     readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_trait_heatmaply.rds"))
   )
   
@@ -14582,7 +14800,7 @@ server <- function(input, output, session) {
           actionLink("input_sel_tut_link", "Input Selection Tutorial"), 
           HTML(". ")
         ),
-        p("To navigate to group differential analysis, go to Prediction Visualization 
+        p("To navigate to group differential analysis, go to Data Exploration Tools 
           and go to Group differential analysis. "),
         tags$div(
           style = "width:100%;",
