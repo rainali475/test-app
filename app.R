@@ -689,7 +689,7 @@ ui <- fluidPage(
         title = "User Manual", 
         tags$iframe(style="height:600px; width:100%", 
                     #src="http://jilab.biostat.jhsph.edu/software/PDDB/app_files/user_manual.pdf", 
-                    src="www/User Manual.pdf")
+                    src="user_manual.pdf")
       ), 
       
       tabPanel(
@@ -774,14 +774,14 @@ server <- function(input, output, session) {
   
   # Load popover contents
   popover_contents <- reactive({
-    readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/popover_contents.rds"))
-    # readRDS("../app files/popover_contents.rds")
+    # readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/popover_contents.rds"))
+    readRDS("../app files/popover_contents.rds")
   })
   
   # Get genomic ranges from file
   genomic_ranges <- reactive({
-    readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/BIRD_output_ranges.rds"))
-    # readRDS("../app files/BIRD_output_ranges.rds")
+    # readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/BIRD_output_ranges.rds"))
+    readRDS("../app files/BIRD_output_ranges.rds")
   })
   
   bird_ranges <- reactive({
@@ -805,58 +805,58 @@ server <- function(input, output, session) {
   
   # Get data.frame matching BIRD genomic ranges to nearest gene
   gbin_tss <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_tss.rds'))
-    # read.delim("../app files/gbin_tss.txt")
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_tss.rds'))
+    read.delim("../app files/gbin_tss.txt")
   })
   
   # Get data.frame matching genes to their TSS's
   gene_tss <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gene_tss.rds'))
-    # read.delim("../app files/gene_tss.txt")
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gene_tss.rds'))
+    read.delim("../app files/gene_tss.txt")
   })
   
   # Get data.frame matching diseases/traits to gbins
   snp_gbin <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/snp_gbin.rds'))
-    # read.delim("../app files/snp_gbin.txt")
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/snp_gbin.rds'))
+    read.delim("../app files/snp_gbin.txt")
   })
   
   # Get data.frame matching gbins to diseases/traits
   gbin_snp <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_snp.rds'))
-    # read.delim("../app files/gbin_snp.txt")
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gbin_snp.rds'))
+    read.delim("../app files/gbin_snp.txt")
   })
   
   # Get study batch info
   studies_batch <- reactive({
-    read.delim("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/studies_batch.txt")
-    # read.delim("../app files/studies_batch.txt")
+    # read.delim("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/studies_batch.txt")
+    read.delim("../app files/studies_batch.txt")
   })
   
   # Read samples table
   all_samples_df <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/samples_df.rds'))
-    # readRDS('../app files/samples_df.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/samples_df.rds'))
+    readRDS('../app files/samples_df.rds')
   })
   
   # Read database sample averages
   database_sample_avgs <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/sample_avgs.rds'))
-    # readRDS('../app files/sample_avgs.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/sample_avgs.rds'))
+    readRDS('../app files/sample_avgs.rds')
   })
   
   # Read projects table
   proj_df <- reactive({
-    df <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/proj_df.rds'))
-    # df <- readRDS('../app files/proj_df.rds')
+    # df <- readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/proj_df.rds'))
+    df <- readRDS('../app files/proj_df.rds')
     df$file_source <- as.factor(df$file_source)
     df
   })
   
   # Example BLOOD dataset
   blood_example_samples <- reactive({
-    # readLines("../tcga_gtex_analysis/blood/strat_age/blood_strat_age.txt")
-    readLines(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/blood_example_samples.txt'))
+    readLines("../tcga_gtex_analysis/blood/strat_age/blood_strat_age.txt")
+    # readLines(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/blood_example_samples.txt'))
   })
   
   # GTEx tissues SNP tables
@@ -869,32 +869,32 @@ server <- function(input, output, session) {
   
   # GTEx trait table
   gtex_trait_table <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_trait_hypervar.rds'))
-    # readRDS('../app files/gtex_trait_hypervar.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_trait_hypervar.rds'))
+    readRDS('../app files/gtex_trait_hypervar.rds')
   })
   
   # Read annotations (mapping between ENSEMBL and SYMBOL)
   annots <- reactive({
-    readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/annots.rds"))
-    # readRDS("../app files/annots.rds")
+    # readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/annots.rds"))
+    readRDS("../app files/annots.rds")
   })
   
   # Read GTEx SNP table
   gtex_trait <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_traits.rds'))
-    # readRDS('../app files/gtex_traits.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_traits.rds'))
+    readRDS('../app files/gtex_traits.rds')
   })
   
   # Read scaled GTEx SNP table
   scaled_gtex_trait <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/scaled_gtex_traits.rds'))
-    # readRDS('../app files/scaled_gtex_traits.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/scaled_gtex_traits.rds'))
+    readRDS('../app files/scaled_gtex_traits.rds')
   })
   
   # Read TCGA barcodes
   tcga_barcode <- reactive({
-    readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/tcga_barcode.rds'))
-    # readRDS('../app files/tcga_barcode.rds')
+    # readRDS(url('http://jilab.biostat.jhsph.edu/software/PDDB/app_files/tcga_barcode.rds'))
+    readRDS('../app files/tcga_barcode.rds')
   })
   
   # Go to input selection on overview page button click
@@ -3330,17 +3330,17 @@ server <- function(input, output, session) {
       rds_url <- paste0("http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b", 
                         studies_batch()$batch[i], 
                         "/", study, ".rds")
-      if ((study == "BLOOD") && (all(sel_samples %in% blood_example_samples()))) {
-        # User selected both only blood samples from example study
-        rds_url <- "http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b18/BLOOD_example_dataset.rds"
-      }
-      study_mat <- readRDS(url(rds_url))
       # if ((study == "BLOOD") && (all(sel_samples %in% blood_example_samples()))) {
       #   # User selected both only blood samples from example study
-      #   study_mat <- readRDS("../app files/BLOOD_example_dataset.rds")
-      # } else {
-      #   study_mat <- readRDS(url(rds_url))
+      #   rds_url <- "http://jilab.biostat.jhsph.edu/software/PDDB/pred_rds/b18/BLOOD_example_dataset.rds"
       # }
+      # study_mat <- readRDS(url(rds_url))
+      if ((study == "BLOOD") && (all(sel_samples %in% blood_example_samples()))) {
+        # User selected both only blood samples from example study
+        study_mat <- readRDS("../app files/BLOOD_example_dataset.rds")
+      } else {
+        study_mat <- readRDS(url(rds_url))
+      }
       pred_mat <- cbind(pred_mat, study_mat[bird_i, sel_samples, drop=F])
     }
     removeModal()
@@ -12662,8 +12662,8 @@ server <- function(input, output, session) {
   
   # gtex traits heatmap
   gtex_trait_heatmap <- reactiveVal(
-    # readRDS("../app files/gtex_trait_heatmaply.rds")
-    readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_trait_heatmaply.rds"))
+    readRDS("../app files/gtex_trait_heatmaply.rds")
+    # readRDS(url("http://jilab.biostat.jhsph.edu/software/PDDB/app_files/gtex_trait_heatmaply.rds"))
   )
   
   # Render gtex traits heatmap
