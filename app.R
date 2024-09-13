@@ -46,6 +46,9 @@ suppressMessages(library(GenomicRanges))
 
 #options(shiny.error = browser)
 options(timeout = 800)
+options(shiny.maxRequestSize=30*1024^2) # maximum 30MB upload size
+
+jscode <- 'window.onbeforeunload = function() { return "If you leave this page, your progress will not be saved. "; };'
 
 # Set recount3 url
 recount3_url <- "https://recount-opendata.s3.amazonaws.com/recount3/release"
@@ -69,6 +72,8 @@ ui <- fluidPage(
   theme = shinytheme("united"),
   
   title = "ChromBIRD", 
+  
+  tags$head(tags$script(jscode)),
   
   tags$head(
     tags$style(HTML('.important-btn:hover{background-color:#d14715}
@@ -118,11 +123,11 @@ ui <- fluidPage(
             tags$div(
               tags$style("p.title {font-size: 60px;}"), 
               HTML("<p class=\"title\"><font color=\"#159d79\"><b>ChromBIRD</b></font></p>"), 
-              HTML("<h3><font color=\"#0f7056\">A chromatin accessibility predictions database</font></h3>"),
+              #HTML("<h3><font color=\"#0f7056\">A chromatin accessibility predictions database</font></h3>"),
               hr(), 
               tags$div(
                 style = "margin-left:50px;",
-                HTML("<h4><font color=\"grey\"><i>A database of imputed human chromatin accessibility landscape</i></font></h4>")
+                HTML("<h3><font color=\"#0f7056\"><i>A database of imputed human chromatin accessibility landscape</i></font></h4>")
               ),
               br(), 
               fluidRow(
@@ -808,6 +813,14 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  # Button: instructions for running from local host
+  output$run_from_local_ui <- renderUI({
+    if (Sys.getenv('SHINY_PORT') != "") {
+      actionButton("show_r_instructions", "Run from local R session", 
+                   class = "regular-btn", width = "100%")
+    }
+  })
+  
   # Load libraries upon going into new page
   start_input_sel <- reactiveVal()
   # pt, group diff, and disease snp libraries only load after input sel libraries loading
@@ -969,6 +982,7 @@ server <- function(input, output, session) {
   gtex_tissue_table <- reactive({
     df <- proj_df()[proj_df()$file_source == "gtex", c("project", "n_samples")]
     colnames(df) <- c("tissue", "n_samples")
+    df <- df[match(colnames(gtex_trait()), df$tissue), ]
     rownames(df) <- NULL
     df
   })
@@ -1016,14 +1030,6 @@ server <- function(input, output, session) {
   # Go to demo on overview page button click
   observeEvent(input$to_demo, {
     updateNavbarPage(session, inputId = "chrombird_nav", selected = "Application Examples")
-  })
-  
-  # Button: instructions for running from local host
-  output$run_from_local_ui <- renderUI({
-    if (Sys.getenv('SHINY_PORT') != "") {
-      actionButton("show_r_instructions", "Run from local R session", 
-                   class = "regular-btn", width = "100%")
-    }
   })
   
   # Modal for instructions for running from local host
@@ -1615,8 +1621,9 @@ server <- function(input, output, session) {
   if (Sys.getenv('SHINY_PORT') == "") {
     dir_roots <- c(working=paste0(getwd(), "/"))
     if (.Platform$OS.type == "windows") {
-      sysdrivereport <- system("wmic logicaldisk get caption", intern = TRUE)
-      drives <- substr(sysdrivereport[-c(1, length(sysdrivereport))], 1, 1)
+      sysdrivereport <- system("fsutil fsinfo drives", intern = TRUE)
+      sysdrivereport <- gsub("Drives: ", "", sysdrivereport[2])
+      drives <- unlist(strsplit(sysdrivereport, ":\\\\ "))
       for (d in drives) {
         dir_roots[d] <- paste0(d, ":/")
       }
@@ -11336,9 +11343,10 @@ server <- function(input, output, session) {
       isolate({
         showModal(modalDialog("Computing fold change...", footer = NULL, easyClose = TRUE, size = "s"))
         data <- pred_mat()[diff_test_res()$genomic_bin, ]
-        logFC <- apply(data, 1, function(x) {
-          mean(x[diff_sample_groups() == input$diff_fc_to]) - mean(x[diff_sample_groups() == input$diff_fc_from])
-        })
+        logFC <- rowMeans(data[, diff_sample_groups() == input$diff_fc_to]) - rowMeans(data[, diff_sample_groups() == input$diff_fc_from])
+        # logFC <- apply(data, 1, function(x) {
+        #   mean(x[diff_sample_groups() == input$diff_fc_to]) - mean(x[diff_sample_groups() == input$diff_fc_from])
+        # })
         removeModal()
         return(logFC)
       })
@@ -11393,6 +11401,11 @@ server <- function(input, output, session) {
     }
   })
   
+  # Download volcano plot
+  observeEvent(input$diff_volcano_plot_download, {
+    download_plot(diff_volcano_plot())
+  })
+  
   # Instructions on how to brush points
   output$diff_volcano_plot_brush_msg <- renderUI({
     if (is.null(input$diff_volcano_plot_brush)) {
@@ -11439,10 +11452,6 @@ server <- function(input, output, session) {
   # Render differential test volcano plot
   output$diff_volcano_plot <- renderPlot({
     diff_volcano_plot()
-  })
-  
-  observeEvent(input$diff_volcano_plot, {
-    download_plot(diff_volcano_plot())
   })
   
   diff_volcano_plot_brushed_table <- reactiveVal()
@@ -11543,9 +11552,10 @@ server <- function(input, output, session) {
     if ((! is.null(input$diff_go_fc_confirm_groups)) && (input$diff_go_fc_confirm_groups > 0)) {
       isolate({
         data <- pred_mat()[diff_test_res()$genomic_bin, ]
-        logFC <- apply(data, 1, function(x) {
-          mean(x[diff_sample_groups() == input$diff_go_fc_to]) - mean(x[diff_sample_groups() == input$diff_go_fc_from])
-        })
+        logFC <- rowMeans(data[, diff_sample_groups() == input$diff_go_fc_to]) - rowMeans(data[, diff_sample_groups() == input$diff_go_fc_from])
+        # logFC <- apply(data, 1, function(x) {
+        #   mean(x[diff_sample_groups() == input$diff_go_fc_to]) - mean(x[diff_sample_groups() == input$diff_go_fc_from])
+        # })
         return(logFC)
       })
     }
@@ -11612,7 +11622,7 @@ server <- function(input, output, session) {
               width = 4, 
               checkboxInput(
                 "diff_go_show_gene_dist_plot", 
-                "Show distribution of cluster bins distance to genes", 
+                "Show distribution of bins distance to genes", 
                 value = FALSE
               )
             )
